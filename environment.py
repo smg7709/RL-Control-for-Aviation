@@ -8,6 +8,10 @@ from gymnasium import spaces
 class FlightEnv(gym.Env):
     def __init__(self):
         super(FlightEnv, self).__init__()
+
+        # initialize point mass model parameters
+        self.mass = 1000.0 # mass of the aircraft in kg
+
         # initialize actions and observations
         low_bounds = np.array([-1.0, -0.75]) # min allowable value to alter [cruise speed, altitude]
         high_bounds = np.array([1.0, 0.75]) # max allowable value to alter [cruise speed, altitude]
