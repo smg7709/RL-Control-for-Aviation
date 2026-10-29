@@ -15,12 +15,17 @@ class FlightEnv(gym.Env):
         self.weight = self.mass * self.g # weight of the aircraft [N]
 
         # initialize actions and observations
-        low_bounds = np.array([-1.0, -0.75]) # min allowable value to alter [cruise speed, altitude]
-        high_bounds = np.array([1.0, 0.75]) # max allowable value to alter [cruise speed, altitude]
-        self.action_space = spaces.Box(low=low_bounds, high=high_bounds, dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
+        low_bounds = np.array([-1.0, -0.75]) # min allowable value to alter [thrust, altitude]
+        high_bounds = np.array([1.0, 0.75]) # max allowable value to alter [thrust, altitude]
+        self.action_space = spaces.Box(low=low_bounds, high=high_bounds, dtype=np.float32) # continuous action space for thrust and altitude adjustments
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32)  # weight, wind speed, wind dir, cruise speed, target cruise speed, altitude, target altitude, remaining fuel
         self.stall_speed = 60.0 # stall speed in knots
         self.original_fuel = 100.0 # original fuel amount
+
+        # update cruise speed based on thrust and drag
+        self.thrust = 0.0
+        self.drag = 0.0
+        self.cruise_speed = self.thrust - self.drag
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
@@ -41,7 +46,9 @@ class FlightEnv(gym.Env):
 
     def step(self, action):
         # apply action to the environment
-        self.state[3] += action[0] # adjust cruise speed
+        self.thrust += action[0] # adjust thrust
+        self.cruise_speed = self.thrust - self.drag
+        self.state[3] = self.cruise_speed # update cruise speed in the state
         self.state[5] += action[1] # adjust altitude
     
         # calculate reward based on how close the current state is to the target state
@@ -53,4 +60,9 @@ class FlightEnv(gym.Env):
         if self.state[3] < self.stall_speed:
             stall_penalty = p*10.0 # penalty for being below stall speed
         reward = - (cruise_speed_diff + altitude_diff + stall_penalty + fuel_diff) # negative reward for being far from target
+
+        # adjust fuel and weight
+        self.state[7] -= self.thrust*0.5 # thrust consumption parameter for 737
+        self.state[0] = self.weight # update weight in the state
+
         done = False # initialize done flag
