@@ -2,6 +2,7 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+from stable_baselines3.common.env_checker import check_env
 
 # note to self: indexing begins at 0
 
@@ -15,6 +16,7 @@ class FlightEnv(gym.Env):
         self.g = 9.81 # gravitational constant [m/s^2]
         self.weight = (self.mass + self.fuel*0.453592) * self.g # weight of the aircraft [N]
         self.stall_speed = 128 # stall speed [knots]
+        self.thrust = self.np_random.uniform(low=-1, high=1, size=(1,))[0] # initial thrust [N]
 
         # initialize simulation parameters
         self.dt = 1/360 # time step [hr]
@@ -29,7 +31,7 @@ class FlightEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
-        self.state = self.np_random.uniform(low=-1, high=1, size=(8,)) # initial state: weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end
+        self.state = np.zeros(8, dtype=np.float32) # initialize the state array
         
         # point mass model initial state
         self.state[0] = self.weight # weight
@@ -78,4 +80,12 @@ class FlightEnv(gym.Env):
         if self.cruise_end <= 0:
             terminated = True # mark the episode as terminated if cruise end is reached
 
-        return self._obs(), reward, terminated, truncated, {}
+        return self._obs(), reward, terminated, False, {"cost": reward}
+
+    def _obs(self):
+        return self.state
+
+# check the environment
+env = FlightEnv()
+check_env(env, warn=True) 
+print("No issues found")
