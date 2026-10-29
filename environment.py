@@ -1,8 +1,9 @@
-# initialize open ai gym
+# initialize open ai gym and other tools
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.env_checker import check_env
+import matplotlib.pyplot as plt
 
 # note to self: indexing begins at 0
 
