@@ -10,7 +10,9 @@ class FlightEnv(gym.Env):
         super(FlightEnv, self).__init__()
 
         # initialize point mass model parameters
-        self.mass = 1000.0 # mass of the aircraft in kg
+        self.mass = 50000.0 # mass of the aircraft [kg]
+        self.g = 9.81 # gravitational constant [m/s^2]
+        self.weight = self.mass * self.g # weight of the aircraft [N]
 
         # initialize actions and observations
         low_bounds = np.array([-1.0, -0.75]) # min allowable value to alter [cruise speed, altitude]
@@ -23,6 +25,18 @@ class FlightEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
         self.state = self.np_random.uniform(low=-1, high=1, size=(8,)) # initial state: weight, wind speed, wind dir, cruise speed, target cruise speed, altitude, target altitude, remaining fuel
+        
+        # point mass model initial state
+        self.state[0] = self.weight # weight
+        self.state[1] = self.np_random.uniform(low=0, high=20, size=(1,))[0] # wind speed
+        self.state[2] = self.np_random.uniform(low=0, high=360, size=(1,))[0] # wind direction
+        self.state[3] = self.np_random.uniform(low=50, high=100, size=(1,))[0] # cruise speed
+        self.state[4] = self.np_random.uniform(low=50, high=100, size=(1,))[0] # target cruise speed
+        self.state[5] = self.np_random.uniform(low=0, high=10000, size=(1,))[0] # altitude
+        self.state[6] = self.np_random.uniform(low=0, high=10000, size=(1,))[0] # target altitude
+        self.state[7] = self.original_fuel # remaining fuel
+        
+        
         return self._obs(), {}
 
     def step(self, action):
