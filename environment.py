@@ -12,21 +12,19 @@ class FlightEnv(gym.Env):
         super(FlightEnv, self).__init__()
 
         # initialize boeing 737 parameters
-        self.empty = 110000.0 # mass of the aircraft [lbs]
-        self.fuel = self.np_random.uniform(low=35000, high=45000, size=(1,))[0] # initial fuel amount [lbs]
+        self.empty = 110000 # mass of the aircraft [lbs]
+        self.fuel = 45000 # initial fuel amount [lbs]
         self.g = 32.2 # gravitational constant [ft/s^2]
         self.mass = self.empty + self.fuel # total aircraft mass [lbs]
-        self.weight = (self.empty + self.fuel) * self.g # weight of the aircraft [lbf]
         self.stall_speed = 128 # stall speed [knots]
-        self.thrust = self.np_random.uniform(low=5000, high=8000, size=(1,))[0] # initial thrust [lbf]
         self.c_drag = 0.049 # coefficient of drag [-]
+        self.thrust = 5000 # initial thrust [lbf]
 
         # initialize simulation parameters
         self.dt = 1/360 # time step [hr]
         self.dts = self.dt*3600 # time step [s]
         self.cruise_start = 0.0
         self.cruise_end = self.np_random.uniform(low=500, high=5000, size=(1,))[0] # total cruise distance [nautical miles]
-        print(self.cruise_end)
 
         # initialize actions and observations
         low_bounds = np.array([-1000, -2000]) # min allowable value to alter [thrust, altitude]
@@ -39,14 +37,15 @@ class FlightEnv(gym.Env):
         self.state = np.zeros(8, dtype=np.float32) # initialize the state array
         
         # point mass model initial state
-        self.state[0] = self.weight # weight
+        self.state[0] = (self.empty + self.fuel) * self.g # weight of the aircraft [lbf]
         self.state[1] = self.np_random.uniform(low=0, high=100, size=(1,))[0] # wind speed [knots]
         self.state[2] = self.np_random.uniform(low=self.stall_speed, high=545, size=(1,))[0] # cruise speed [knots]
         self.state[3] = self.np_random.uniform(low=400, high=500, size=(1,))[0] # target cruise speed based on research
         self.state[4] = self.np_random.uniform(low=30000, high=41000, size=(1,))[0] # altitude [ft]
         self.state[5] = self.np_random.uniform(low=33000, high=41000, size=(1,))[0] # target altitude based on research
-        self.state[6] = self.fuel # remaining fuel
+        self.state[6] = self.np_random.uniform(low=35000, high=45000, size=(1,))[0] # fuel amount [lbs]
         self.state[7] = self.cruise_end # remaining distance to cruise end
+        self.thrust = self.np_random.uniform(low=5000, high=8000, size=(1,))[0] # thrust [lbf]
         
         return self._obs(), {}
 
@@ -64,18 +63,13 @@ class FlightEnv(gym.Env):
         self.state[2] += accel*self.dts*fts_to_knots # update cruise speed
         
         # adjust fuel and weight
-        self.state[6] -= self.thrust*0.5*self.dts # fuel consumption for 737
+        self.state[6] -= self.thrust*0.5*self.dt # fuel consumption for 737
         self.state[0] = (self.mass-self.thrust*0.5)*self.g # update weight in the state
         self.state[1] = self.np_random.uniform(low=0, high=20, size=(1,))[0] # update wind speed in the state
 
         # update distance
         distance_traveled = self.state[2] * self.dt # distance traveled in the current time step [nautical miles]
         self.state[7] -= distance_traveled # update remaining distance to cruise end
-
-        ground_speed = self.state[2] - self.state[1]  # adjust if you add wind
-        step_dist = ground_speed * self.dt
-        print(f"dist_before={self.state[7]:.2f} nmi, speed={ground_speed:.1f} kt, "
-        f"dt={self.dt:.5f} hr, step_dist={step_dist:.3f} nmi, distance left={self.state[7]}")
             
         # calculate reward based on how close the current state is to the target state
         p = 1.2 # penalty factor
@@ -88,8 +82,7 @@ class FlightEnv(gym.Env):
         reward = - (cruise_speed_diff + altitude_diff + stall_penalty + fuel_used) # negative reward for being far from target
         
         # initialize goal parameters
-        terminated = False # initialize terminated flag
-        truncated = False # initialize truncated flag
+        terminated = False # initialize termination flag
 
         if self.state[7] >= self.cruise_end:
             terminated = True # mark the episode as terminated if cruise end is reached
@@ -104,21 +97,28 @@ class FlightEnv(gym.Env):
 # check the environment
 env = FlightEnv()
 check_env(env, warn=True) 
-print("No issues found")
+# print("No issues found")
+
+
+
 
 # reset environment
 obs, info = env.reset()
 fuel_history = [] # assign fuel to an empty array
 speed_history = [] # assign cruise speed to an empty array
+weight_history = [] # assign weight to an empty array
+total_reward = 0 # initialize total reward
 
 # random steps
-for _ in range(100):
+for _ in range(250):
   action = env.action_space.sample()  # random action
   obs, reward, terminated, truncated, info = env.step(action)
   
-  weight, wind_speed, cruise_speed, target_cruise_speed, altitude, target_altitude, remaining_fuel, remaining_distance =  obs
+  weight, wind_speed, cruise_speed, target_cruise_speed, altitude, target_altitude, remaining_fuel, remaining_distance =  obs # assign variables to observations
   fuel_history.append(float(obs[6])) # get list of fuel over episode
   speed_history.append(float(obs[2])) # get list of cruise speed over episode
+  weight_history.append(float(obs[0])) # get list of weight over episode
+  total_reward += reward # accumulate total reward
 
   if terminated or truncated:
     break
@@ -133,5 +133,10 @@ plt.plot(fuel_history, marker='x')
 plt.xlabel("Step")
 plt.ylabel("Fuel Over Episode")
 plt.show()
-print(reward)
+plt.figure(figsize=(6,4))
+plt.plot(weight_history, marker='s')
+plt.xlabel("Step")
+plt.ylabel("Weight Over Episode")
+plt.show()
+print("Total reward:", total_reward)
 env.close()
