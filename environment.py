@@ -13,14 +13,14 @@ class FlightEnv(gym.Env):
 
         # initialize boeing 737 parameters
         self.empty = 110000 # weight of the aircraft [lbs]
-        self.fuel = self.np_random.uniform(low=35000, high=45000, size=(1,))[0] # weight of fuel [lbs]
+        self.fuel = 45000 # weight of fuel [lbs]
         self.weight = self.empty + self.fuel # total aircraft weight [lbs]
         self.stall_speed = 128 # stall speed [knots]
         self.c_drag = 0.049 # coefficient of drag [-]
         self.thrust = 5000 # initial thrust [lbf]
 
         # initialize simulation parameters
-        self.dt = 1/360 # time step [hr]
+        self.dt = 1/36 # time step [hr]
         self.dts = self.dt*3600 # time step [s]
         self.cruise_start = 0
         self.cruise_end = self.np_random.uniform(low=500, high=5000, size=(1,))[0] # total cruise distance [nautical miles]
@@ -89,6 +89,8 @@ class FlightEnv(gym.Env):
             terminated = True # mark the episode as terminated if cruise end is reached
         if self.state[6] <= 0:
             terminated = True # mark the episode as terminated if run out of fuel
+        if self.state[4] >= 41000:
+            terminated = True # mark the episode as terminated if above max altitude
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
@@ -111,7 +113,7 @@ alt_history = [] # assign altitude to an empty array
 total_reward = 0 # initialize total reward
 
 # random steps
-for _ in range(250):
+for _ in range(1000):
   action = env.action_space.sample()  # random action
   obs, reward, terminated, truncated, info = env.step(action)
   
@@ -121,6 +123,17 @@ for _ in range(250):
   alt_history.append(float(obs[4])) # get list of altitude over episode
   
   total_reward += reward # accumulate total reward
+  
+  for i in range(1000):
+    before = env.unwrapped.state[6]
+    obs, r, terminated, truncated, info = env.step(env.action_space.sample())
+    after = env.unwrapped.state[6]
+    print(i, f"before={before:.1f} after={after:.1f} change={after-before:+.1f} "
+             f"thrust={env.unwrapped.thrust:.0f} dt={env.unwrapped.dt:.5f} "
+             f"term={terminated} trunc={truncated}")
+    if terminated or truncated:
+        print("-- reset --")
+        env.reset()
 
   if terminated or truncated:
     break
