@@ -12,12 +12,12 @@ class FlightEnv(gym.Env):
         super(FlightEnv, self).__init__()
 
         # initialize boeing 737 parameters
-        self.mass = 50000.0 # mass of the aircraft [kg]
-        self.fuel = 45000.0 # initial fuel amount [lbs]
-        self.g = 9.81 # gravitational constant [m/s^2]
-        self.weight = (self.mass + self.fuel*0.453592) * self.g # weight of the aircraft [N]
+        self.mass = 110000.0 # mass of the aircraft [lbs]
+        self.fuel = self.np_random.uniform(low=10000, high=46000, size=(1,))[0] # initial fuel amount [lbs]
+        self.g = 32.2 # gravitational constant [ft/s^2]
+        self.weight = (self.mass + self.fuel) * self.g # weight of the aircraft [lbf]
         self.stall_speed = 128 # stall speed [knots]
-        self.thrust = self.np_random.uniform(low=-1, high=1, size=(1,))[0] # initial thrust [N]
+        self.thrust = self.np_random.uniform(low=14000, high=29000, size=(1,))[0] # initial thrust [lbf]
 
         # initialize simulation parameters
         self.dt = 1/360 # time step [hr]
@@ -25,8 +25,8 @@ class FlightEnv(gym.Env):
         self.cruise_end = 0.0 # cruise end distance [nautical miles]
 
         # initialize actions and observations
-        low_bounds = np.array([-1.0, -0.75]) # min allowable value to alter [thrust, altitude]
-        high_bounds = np.array([1.0, 0.75]) # max allowable value to alter [thrust, altitude]
+        low_bounds = np.array([-1.0, -1.0]) # min allowable value to alter [thrust, altitude]
+        high_bounds = np.array([1.0, 1.0]) # max allowable value to alter [thrust, altitude]
         self.action_space = spaces.Box(low=low_bounds, high=high_bounds, dtype=np.float32) # continuous action space for thrust and altitude adjustments
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(8,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end
 
@@ -56,13 +56,13 @@ class FlightEnv(gym.Env):
         self.state[2] = self.thrust - self.drag # update cruise speed via thrust-drag relationship
         
         # adjust fuel and weight
-        self.state[6] -= self.thrust*0.5 # thrust consumption parameter for 737
-        self.state[0] = self.weight # update weight in the state
+        self.state[6] -= self.thrust*0.5 # fuel consumption for 737
+        self.state[0] = (self.mass-self.thrust*0.5)*self.g # update weight in the state
         self.state[1] = self.np_random.uniform(low=0, high=20, size=(1,))[0] # update wind speed in the state
     
         # calculate reward based on how close the current state is to the target state
         p = 1.2 # penalty factor
-        fuel_used = p*abs(self.state[6] - self.thrust*0.5) # amount of fuel used in step
+        fuel_used = p*(self.thrust*0.5) # amount of fuel used in step
         cruise_speed_diff = p*abs(self.state[2] - self.state[3]) # difference between current and target cruise speed
         altitude_diff = p*abs(self.state[4] - self.state[5]) # difference between current and target altitude
         stall_penalty = 0 # initialize stall penalty
@@ -71,8 +71,7 @@ class FlightEnv(gym.Env):
         reward = - (cruise_speed_diff + altitude_diff + stall_penalty + fuel_used) # negative reward for being far from target
         
         distance_traveled = self.state[2] * self.dt # distance traveled in the current time step [nautical miles]
-        self.cruise_end = self.cruise_start - distance_traveled # update remaining distance to cruise end
-        self.state[7] = self.cruise_end # update remaining distance to cruise end in the state
+        self.state[7] = self.cruise_start - distance_traveled # update remaining distance to cruise end
     
         # initialize goal parameters
         terminated = False # initialize terminated flag
@@ -90,3 +89,26 @@ class FlightEnv(gym.Env):
 env = FlightEnv()
 check_env(env, warn=True) 
 print("No issues found")
+
+obs, info = env.reset()
+
+# plot initialization
+plt.figure(figsize=(6, 4))
+plt.axis("off")
+plt.title("Initial State")
+
+
+# random steps
+for _ in range(5):
+  action = env.action_space.sample()  # Random action
+  obs, reward, terminated, truncated, info = env.step(action)
+
+  plt.title(f"Action: {action} | Reward: {reward}")
+  plt.axis("off")
+  plt.show()
+
+  if terminated or truncated:
+    obs, info = env.reset()
+
+plt.show()
+env.close()
