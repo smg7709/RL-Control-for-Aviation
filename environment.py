@@ -26,9 +26,9 @@ class FlightEnv(gym.Env):
         self.cruise_end = self.np_random.uniform(low=500, high=5000, size=(1,))[0] # total cruise distance [nautical miles]
         
         # initialize actions and observations
-        low_bounds = np.array([-1, -1]) # min allowable value to alter [thrust [lbf], altitude [ft]]
-        high_bounds = np.array([1, 1]) # max allowable value to alter [thrust [lbf], altitude [ft]]
-        self.action_space = spaces.Box(low=low_bounds, high=high_bounds, dtype=np.float32) # continuous action space for thrust and altitude adjustments
+        # low_bounds = np.array([-1, -1]) # min allowable value to alter [thrust [lbf], altitude [ft]]
+        # high_bounds = np.array([1, 1]) # max allowable value to alter [thrust [lbf], altitude [ft]]
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32) # continuous action space for thrust and altitude adjustments
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(9,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end, thrust
 
     def reset(self, seed=None, options=None):
@@ -84,8 +84,6 @@ class FlightEnv(gym.Env):
         stall_penalty = 0 # initialize stall penalty
         if self.state[2] < self.stall_speed:
             stall_penalty = p*50 # very large penalty for being below stall speed
-        reward = - (cruise_speed_diff + altitude_diff + stall_penalty + fuel_used) # negative reward for being far from target
-        print(f"Reward: {reward}, Cruise Speed Diff: {cruise_speed_diff}, Altitude Diff: {altitude_diff}, Stall Penalty: {stall_penalty}, Fuel Used: {fuel_used}")
         
         # initialize goal parameters
         terminated = False # initialize termination flag
