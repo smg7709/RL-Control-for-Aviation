@@ -10,7 +10,7 @@ from environment import FlightEnv
 env = FlightEnv() # initialize environment
 model = PPO("MlpPolicy", env, verbose=1) # initialize PPO model
 
-model.learn(total_timesteps=1000) # train the model for 1000 timesteps
+model.learn(total_timesteps=100000) # train the model for 100000 timesteps
 model.save("ppo_flight_model") # save the trained model
 del model
 
@@ -41,22 +41,18 @@ for _ in range(1000):
     break
 env.close() # close the environment
 
-fig, axs = plt.subplots(1, 3, figsize=(6, 12))
+fig, axs = plt.subplots(1, 2, figsize=(6, 12))
 axs[0].plot(target_speed_history, label="target")
 axs[0].plot(speed_history, label="speed")
 axs[0].legend()
 axs[0].set_xlabel("Step")
 axs[0].set_ylabel("Speed Over Episode")
 
-axs[1].plot(fuel_history, marker='x')
+axs[1].plot(target_alt_history, label="target")
+axs[1].plot(alt_history, label="altitude")
+axs[1].legend()
 axs[1].set_xlabel("Step")
-axs[1].set_ylabel("Fuel Over Episode")
-
-axs[2].plot(target_alt_history, label="target")
-axs[2].plot(alt_history, label="altitude")
-axs[2].legend()
-axs[2].set_xlabel("Step")
-axs[2].set_ylabel("Altitude Over Episode")
+axs[1].set_ylabel("Altitude Over Episode")
 
 plt.suptitle('Baseline PPO Performance', fontsize=16)
 plt.tight_layout()
