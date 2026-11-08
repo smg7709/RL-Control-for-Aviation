@@ -99,13 +99,12 @@ class FlightEnv(gym.Env):
         self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-50, 50), 33000, 39000))
 
         # calculate reward based on how close the current state is to the target state
-        p = 1.2 # penalty factor
-        fuel_used = p*(abs(self.state[8]*TSFC)) # amount of fuel used in step
-        cruise_speed_diff = p*abs(self.state[2] - self.state[3]) # difference between current and target cruise speed
-        altitude_diff = p*abs(self.state[4] - self.state[5]) # difference between current and target altitude
+        fuel_used = (abs(self.state[8]*TSFC)) # amount of fuel used in step
+        cruise_speed_diff = abs(self.state[2] - self.state[3])/100 # difference between current and target cruise speed
+        altitude_diff = abs(self.state[4] - self.state[5])/1000 # difference between current and target altitude
         stall_penalty = 0 # initialize stall penalty
         if self.state[2] < self.stall_speed:
-            stall_penalty = p*50 # very large penalty for being below stall speed
+            stall_penalty = 50 # very large penalty for being below stall speed
 
         reward = - (fuel_used + cruise_speed_diff + altitude_diff + stall_penalty) # total reward is negative sum of penalties
         
@@ -113,12 +112,15 @@ class FlightEnv(gym.Env):
         terminated = False # initialize termination flag
         if self.state[7] >= self.cruise_end:
             terminated = True # mark the episode as terminated if cruise end is reached
+            reward = 10000 # large reward for reaching cruise end
         if self.state[6] <= 0:
             terminated = True # mark the episode as terminated if run out of fuel
         if self.state[4] >= self.max_altitude:
             terminated = True # mark the episode as terminated if above max altitude
+            reward = -10000 # prevent exploitation of ending episode early by going above max altitude
         if self.state[4] <= self.min_altitude:
             terminated = True # mark the episode as terminated if below min altitude
+            reward = -10000 # prevent exploitation of ending episode early by going below min altitude
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
