@@ -10,7 +10,7 @@ from environment import FlightEnv
 env = FlightEnv() # initialize environment
 model = PPO("MlpPolicy", env, verbose=1) # initialize PPO model
 
-model.learn(total_timesteps=100000) # train the model for 100000 timesteps
+model.learn(total_timesteps=500000) # train the model for 100000 timesteps
 model.save("ppo_flight_model") # save the trained model
 del model
 

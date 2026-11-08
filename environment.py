@@ -105,11 +105,12 @@ class FlightEnv(gym.Env):
         stall_penalty = 0 # initialize stall penalty
         if self.state[2] < self.stall_speed:
             stall_penalty = 50 # very large penalty for being below stall speed
+        fuel_penalty = fuel_used/1000 # penalty for fuel used
 
         # add reward for agent "staying alive"
         alive_reward = 1 # small reward for each time step the agent survives
 
-        reward = - (fuel_used + cruise_speed_diff + altitude_diff + stall_penalty) + alive_reward # total reward is negative sum of penalties plus alive reward
+        reward = -(cruise_speed_diff + 0.5*altitude_diff)-0.1*fuel_penalty - stall_penalty + alive_reward # total reward is negative sum of penalties plus alive reward
         
         # initialize goal parameters
         terminated = False # initialize termination flag
