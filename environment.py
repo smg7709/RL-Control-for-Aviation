@@ -153,9 +153,6 @@ for _ in range(1000):
   target_speed_history.append(float(obs[3])) # get list of target cruise speed over episode
   target_alt_history.append(float(obs[5])) # get list of target altitude over episode
 
-  drag = 0.5*env.air_density*env.c_drag*env.area*((cruise_speed - wind_speed)*1.68781)**2 # calculate aerodynamic drag based on airspeed [lbf]
-  print(drag, cruise_speed, thrust)
-
   total_reward += reward # accumulate total reward
 
 fig, axs = plt.subplots(1, 3, figsize=(6, 12))
