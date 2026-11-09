@@ -7,7 +7,7 @@ from stable_baselines3 import PPO
 from environment import FlightEnv
 
 # set up PPO model and environment
-env = FlightEnv() # initialize environment
+env = FlightEnv()
 model = PPO("MlpPolicy", env, verbose=1) # initialize PPO model
 
 model.learn(total_timesteps=100000) # train the model for 100000 timesteps

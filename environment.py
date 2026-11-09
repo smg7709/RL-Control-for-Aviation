@@ -102,16 +102,15 @@ class FlightEnv(gym.Env):
         fuel_used = (abs(self.state[8]*TSFC)) # amount of fuel used in step
         cruise_speed_diff = abs(self.state[2] - self.state[3])/100 # difference between current and target cruise speed
         altitude_diff = abs(self.state[4] - self.state[5])/1000 # difference between current and target altitude
+        fuel_penalty = fuel_used/1000 # penalty for fuel used
+        
         stall_penalty = 0 # initialize stall penalty
         if self.state[2] < self.stall_speed:
-            stall_penalty = 50 # very large penalty for being below stall speed
-        fuel_penalty = fuel_used/1000 # penalty for fuel used
+            stall_penalty = 5 # large penalty for being below stall speed
 
-        # add reward for agent "staying alive"
-        alive_reward = 1 # small reward for each time step the agent survives
+        reward = -(cruise_speed_diff + 0.5*altitude_diff + fuel_penalty + stall_penalty) # total reward is negative sum of penalties
+            # altitude is less important than cruise speed and fuel, so it is weighted less in the reward function
 
-        reward = -(cruise_speed_diff + 0.5*altitude_diff)-0.1*fuel_penalty - stall_penalty + alive_reward # total reward is negative sum of penalties plus alive reward
-        
         # initialize goal parameters
         terminated = False # initialize termination flag
         if self.state[7] >= self.cruise_end:
