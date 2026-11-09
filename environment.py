@@ -101,15 +101,17 @@ class FlightEnv(gym.Env):
         # calculate reward based on how close the current state is to the target state
         fuel_used = (abs(self.state[8]*TSFC)) # amount of fuel used in step
         cruise_speed_diff = abs(self.state[2] - self.state[3])/100 # difference between current and target cruise speed
-        altitude_diff = abs(self.state[4] - self.state[5])/1000 # difference between current and target altitude
-        fuel_penalty = fuel_used/1000 # penalty for fuel used
-        
+        altitude_diff = abs(self.state[4] - self.state[5])/5000 # difference between current and target altitude
+        fuel_penalty = fuel_used/5000 # penalty for fuel used
+
         stall_penalty = 0 # initialize stall penalty
         if self.state[2] < self.stall_speed:
             stall_penalty = 5 # large penalty for being below stall speed
 
         reward = -(cruise_speed_diff + 0.5*altitude_diff + fuel_penalty + stall_penalty) # total reward is negative sum of penalties
             # altitude is less important than cruise speed and fuel, so it is weighted less in the reward function
+
+        #print(cruise_speed_diff, altitude_diff, fuel_penalty, stall_penalty, reward) # print the components of the reward for debugging
 
         # initialize goal parameters
         terminated = False # initialize termination flag
@@ -129,13 +131,14 @@ env = FlightEnv()
 # check_env(env, warn=True) 
 # print("No issues found")
 
-#random sample testing
-
+# random sample testing
 if __name__ == "__main__":
     env=FlightEnv()
 
     # reset environment
     obs, info = env.reset()
+
+    # initialize tracking arrays
     fuel_history = [] # assign fuel to an empty array
     speed_history = [] # assign cruise speed to an empty array
     target_speed_history = [] # assign target cruise speed to an empty array
@@ -156,16 +159,18 @@ if __name__ == "__main__":
         target_speed_history.append(float(obs[3])) # get list of target cruise speed over episode
         target_alt_history.append(float(obs[5])) # get list of target altitude over episode
 
-        total_reward += reward # accumulate total reward
-
         a_speed = np.clip((target_cruise_speed - cruise_speed) / 100, -1, 1)
         a_alt   = np.clip((target_altitude - altitude) / 1000, -1, 1)
         action_reward = np.array([a_speed, a_alt], dtype=np.float32)
         print(action_reward)
             
+    min_target_speed = min(target_speed_history)
+    max_target_speed = max(target_speed_history)
+    min_target_alt = min(target_alt_history)
+    max_target_alt = max(target_alt_history)
 
     fig, axs = plt.subplots(1, 3, figsize=(6, 12))
-    axs[0].plot(target_speed_history, label="target")
+    axs[0].fill_between(range(len(target_speed_history)), min_target_speed, max_target_speed, color='blue', alpha=0.2, label="target range")
     axs[0].plot(speed_history, label="speed")
     axs[0].legend()
     axs[0].set_xlabel("Step")
@@ -175,7 +180,7 @@ if __name__ == "__main__":
     axs[1].set_xlabel("Step")
     axs[1].set_ylabel("Fuel Over Episode")
 
-    axs[2].plot(target_alt_history, label="target")
+    axs[2].fill_between(range(len(target_alt_history)), min_target_alt, max_target_alt, color='blue', alpha=0.2, label="target range")
     axs[2].plot(alt_history, label="altitude")
     axs[2].legend()
     axs[2].set_xlabel("Step")
