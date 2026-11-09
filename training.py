@@ -4,17 +4,25 @@ import numpy as np
 from gymnasium import spaces
 import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.evaluation import evaluate_policy
 from environment import FlightEnv
 
-# set up PPO model and environment
+# set up PPO model and environment, begin learning
 env = FlightEnv()
-model = PPO("MlpPolicy", env, verbose=1) # initialize PPO model
-
+model = PPO("MlpPolicy", env, gamma=0.99, seed=0, verbose=1) # initialize PPO model
 model.learn(total_timesteps=200000) # train the model for 200000 timesteps
+
+mean_reward, std_reward = evaluate_policy(model, Monitor(env), n_eval_episodes=50, deterministic=True) # evaluate the trained model
+print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}") # print the mean and standard deviation of the reward
+
 model.save("ppo_flight_model") # save the trained model
 del model
 
 model = PPO.load("ppo_flight_model", env=env) # load the trained model
+
+
+
 
 # evaluation of trained model
 obs, info = env.reset() # reset the environment and get the initial observation
