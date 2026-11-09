@@ -10,7 +10,7 @@ from environment import FlightEnv
 env = FlightEnv()
 model = PPO("MlpPolicy", env, verbose=1) # initialize PPO model
 
-model.learn(total_timesteps=100000) # train the model for 100000 timesteps
+model.learn(total_timesteps=10000) # train the model for 10000 timesteps
 model.save("ppo_flight_model") # save the trained model
 del model
 
@@ -42,14 +42,21 @@ for _ in range(1000):
     break
 env.close() # close the environment
 
+# find min and max target values
+min_target_speed = min(target_speed_history)
+max_target_speed = max(target_speed_history)
+min_target_alt = min(target_alt_history)
+max_target_alt = max(target_alt_history)
+
+# figure for plotting
 fig, axs = plt.subplots(1, 3, figsize=(6, 12))
-axs[0].plot(target_speed_history, label="target")
+axs[0].fill_between(range(len(target_speed_history)), min_target_speed, max_target_speed, color='blue', alpha=0.2, label="target range")
 axs[0].plot(speed_history, label="speed")
 axs[0].legend()
 axs[0].set_xlabel("Step")
 axs[0].set_ylabel("Speed Over Episode")
 
-axs[1].plot(target_alt_history, label="target")
+axs[1].fill_between(range(len(target_alt_history)), min_target_alt, max_target_alt, color='blue', alpha=0.2, label="target range")
 axs[1].plot(alt_history, label="altitude")
 axs[1].legend()
 axs[1].set_xlabel("Step")

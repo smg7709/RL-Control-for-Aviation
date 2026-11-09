@@ -145,7 +145,8 @@ if __name__ == "__main__":
 
     # random steps
     for _ in range(1000):
-        action = env.action_space.sample()  # random action
+        # action = env.action_space.sample()  # random action
+        action = [1, 0]  # increase cruise speed, maintain altitude
         obs, reward, terminated, truncated, info = env.step(action)
         
         weight, wind_speed, cruise_speed, target_cruise_speed, altitude, target_altitude, remaining_fuel, remaining_distance, thrust =  obs # assign variables to observations
@@ -156,6 +157,12 @@ if __name__ == "__main__":
         target_alt_history.append(float(obs[5])) # get list of target altitude over episode
 
         total_reward += reward # accumulate total reward
+
+        a_speed = np.clip((target_cruise_speed - cruise_speed) / 100, -1, 1)
+        a_alt   = np.clip((target_altitude - altitude) / 1000, -1, 1)
+        action_reward = np.array([a_speed, a_alt], dtype=np.float32)
+        print(action_reward)
+            
 
     fig, axs = plt.subplots(1, 3, figsize=(6, 12))
     axs[0].plot(target_speed_history, label="target")
