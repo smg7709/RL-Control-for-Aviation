@@ -31,7 +31,7 @@ class FlightEnv(gym.Env):
         self.cruise_start = 0
         self.cruise_end = self.np_random.uniform(low=500, high=5000, size=(1,))[0] # total cruise distance [nautical miles]
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
-        self.altitude_delta = 500 # maximum change in altitude per time step [ft]
+        self.altitude_delta = 250 # maximum change in altitude per time step [ft]
         self.c_drag = 0.035 # coefficient of drag [-]
         self.air_density = 0.0006 # air density at cruise altitude [slugs/ft^3]
         
@@ -158,11 +158,6 @@ if __name__ == "__main__":
         alt_history.append(float(obs[4])) # get list of altitude over episode
         target_speed_history.append(float(obs[3])) # get list of target cruise speed over episode
         target_alt_history.append(float(obs[5])) # get list of target altitude over episode
-
-        a_speed = np.clip((target_cruise_speed - cruise_speed) / 100, -1, 1)
-        a_alt   = np.clip((target_altitude - altitude) / 1000, -1, 1)
-        action_reward = np.array([a_speed, a_alt], dtype=np.float32)
-        print(action_reward)
             
     min_target_speed = min(target_speed_history)
     max_target_speed = max(target_speed_history)
