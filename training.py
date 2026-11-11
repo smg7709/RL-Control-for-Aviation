@@ -1,22 +1,22 @@
 # initialize open ai gym and other tools
 import matplotlib.pyplot as plt
-from stable_baselines3 import SAC
+from stable_baselines3 import A2C, PPO, SAC
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from environment import FlightEnv
 from gymnasium.wrappers import TimeLimit
 
-# set up SAC model and environment, begin learning
+# set up A2C model and environment, begin learning
 env = TimeLimit(FlightEnv(), max_episode_steps=1000)
-model = SAC("MlpPolicy", env, gamma=0.99, seed=0, verbose=1) # initialize SAC model
-model.learn(total_timesteps=100000) # train the model for 100000 timesteps
+model = A2C("MlpPolicy", env, gamma=0.99, seed=0, verbose=1) # initialize A2C model
+model.learn(total_timesteps=200000) # train the model for 200000 timesteps
 
 mean_reward, std_reward = evaluate_policy(model, Monitor(env), n_eval_episodes=50, deterministic=True) # evaluate the trained model
 print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}") # print the mean and standard deviation of the reward
 
 print('Training Done')
-model.save("sac_flight_model") # save the trained model
-model = SAC.load("sac_flight_model", env=env) # load the trained model
+model.save("a2c_flight_model") # save the trained model
+model = A2C.load("a2c_flight_model", env=env) # load the trained model
 print('Saved, starting evaluation')
 
 # evaluation of trained model
@@ -70,7 +70,7 @@ axs[2].plot(reward_history, marker='x')
 axs[2].set_xlabel("Step")
 axs[2].set_ylabel("Reward Over Episode")
 
-plt.suptitle('SAC Performance', fontsize=16)
+plt.suptitle('A2C Performance', fontsize=16)
 plt.tight_layout()
 plt.show()
 print('Evaluation Done')
