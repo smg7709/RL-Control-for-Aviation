@@ -24,8 +24,6 @@ class FlightEnv(gym.Env):
         # initialize simulation parameters
         self.dt = 1/360 # time step [hr]
         self.dts = self.dt*3600 # time step [s]
-        self.cruise_start = 0
-        self.cruise_end = self.np_random.uniform(low=500, high=5000, size=(1,))[0] # total cruise distance [nautical miles]
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
         self.altitude_delta = 250 # maximum change in altitude per time step [ft]
         self.c_drag = 0.035 # coefficient of drag [-]
@@ -52,9 +50,8 @@ class FlightEnv(gym.Env):
         self.state[4] = self.np_random.uniform(low=self.min_altitude, high=self.max_altitude, size=(1,))[0] # altitude [ft]
         self.state[5] = self.np_random.uniform(low=33000, high=self.max_altitude, size=(1,))[0] # target altitude based on research
         self.state[6] = self.np_random.uniform(low=35000, high=45000, size=(1,))[0] # fuel amount [lbf]
-        self.state[7] = self.cruise_end # remaining distance to cruise end
+        self.state[7] = self.np_random.uniform(low=500, high=5000, size=(1,))[0] # total cruise distance [nautical miles]
         self.state[8] = float(np.clip(self.drag, self.min_thrust, self.max_thrust)) # update thrust in the state [lbf]
-
         
         return self._obs(), {}
 
@@ -111,16 +108,25 @@ class FlightEnv(gym.Env):
 
         # initialize goal parameters
         terminated = False # initialize termination flag
-        if self.state[7] >= self.cruise_end:
+        if self.state[7] <= 0:
             terminated = True # mark the episode as terminated if cruise end is reached
-            reward = 10000 # large reward for reaching cruise end
+            reward = 100 # large reward for reaching cruise end
         if self.state[6] <= 0:
             terminated = True # mark the episode as terminated if run out of fuel
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
     def _obs(self):
-        return self.state
+        return np.array([
+        self.state[1], # wind [knots]
+        self.state[2], # speed [knots]
+        (self.state[3] - self.state[2]), # speed error (target - current) [knots]
+        self.state[4], # altitude [feet]
+        (self.state[5] - self.state[4]), # altitude error (target - current) [feet]
+        self.state[6], # fuel [lbs]
+        self.state[7], # remaining distance [nautical miles]
+        self.state[8], # thrust [lbf]
+    ], dtype=np.float32)
 
 # check the environment
 env = FlightEnv()
