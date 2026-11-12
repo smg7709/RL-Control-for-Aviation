@@ -38,7 +38,7 @@ class FlightEnv(gym.Env):
         self.state = np.zeros(9, dtype=np.float32) # initialize the state array
         
         # point mass model initial state
-        self.state[0] = self.empty + self.fuel  # weight of the aircraft [lbf]
+        self.state[0] = self.empty + self.np_random.uniform(low=30000, high=45000, size=(1,))[0]  # weight of the aircraft [lbf]
         self.state[1] = self.np_random.uniform(low=0, high=30, size=(1,))[0] # wind speed [knots]
         self.state[2] = self.np_random.uniform(low=self.min_speed, high=self.max_speed, size=(1,))[0] # cruise speed [knots]
         
@@ -118,15 +118,16 @@ class FlightEnv(gym.Env):
 
     def _obs(self):
         return np.array([
-        self.state[1], # wind [knots]
-        self.state[2], # speed [knots]
-        (self.state[3] - self.state[2]), # speed error (target - current) [knots]
-        self.state[4], # altitude [feet]
-        (self.state[5] - self.state[4]), # altitude error (target - current) [feet]
-        self.state[6], # fuel [lbs]
-        self.state[7], # remaining distance [nautical miles]
-        self.state[8], # thrust [lbf]
-    ], dtype=np.float32)
+            self.state[0], # weight [lbf]
+            self.state[1], # wind [knots]
+            self.state[2], # cruise speed [knots]
+            (self.state[3] - self.state[2]), # cruise speed error (target - current)
+            self.state[4], # altitude [feet]
+            (self.state[5] - self.state[4]), # altitude error (target - current)
+            self.state[6], # fuel [lbs]
+            self.state[7], # remaining distance [nautical miles]
+            self.state[8], # thrust [lbf]
+        ], dtype=np.float32)
 
 # check the environment
 # env = FlightEnv()

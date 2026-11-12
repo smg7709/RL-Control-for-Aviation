@@ -22,15 +22,14 @@ total_reward = 0 # initialize total reward
 for _ in range(1000):
   action = env.action_space.sample()  # random action
   obs, reward, terminated, truncated, info = env.step(action)
-        
-  weight, wind_speed, cruise_speed, target_cruise_speed, altitude, target_altitude, remaining_fuel, remaining_distance, thrust =  obs # assign variables to observations
-  fuel_history.append(float(obs[6])) # get list of fuel over episode
-  speed_history.append(float(obs[2])) # get list of cruise speed over episode
-  alt_history.append(float(obs[4])) # get list of altitude over episode
-  target_speed_history.append(float(obs[3])) # get list of target cruise speed over episode
-  target_alt_history.append(float(obs[5])) # get list of target altitude over episode
 
-            
+  s = env.unwrapped.state
+  fuel_history.append(float(s[6]))
+  speed_history.append(float(s[2]))
+  target_speed_history.append(float(s[3]))
+  alt_history.append(float(s[4]))
+  target_alt_history.append(float(s[5]))
+
 min_target_speed = min(target_speed_history)
 max_target_speed = max(target_speed_history)
 min_target_alt = min(target_alt_history)
