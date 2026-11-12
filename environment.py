@@ -13,10 +13,6 @@ class FlightEnv(gym.Env):
 
         # initialize boeing 737 parameters
         self.empty = 110000 # weight of the aircraft [lbf]
-        self.fuel = 40000 # weight of fuel [lbf]
-        self.weight = self.empty + self.fuel # total aircraft weight [lbf]
-        self.stall_speed = 128 # stall speed [knots]
-        self.thrust = 5000 # initial thrust [lbf]
         self.min_altitude = 30000 # minimum altitude [ft]
         self.max_altitude = 41000 # maximum altitude [ft]
         self.min_speed = 300 # minimum cruise speed [knots]
@@ -33,7 +29,7 @@ class FlightEnv(gym.Env):
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
         self.altitude_delta = 250 # maximum change in altitude per time step [ft]
         self.c_drag = 0.035 # coefficient of drag [-]
-        self.air_density = 0.0006 # air density at cruise altitude [slugs/ft^3]
+        self.air_density = 0.0006 # approximate air density at cruise altitude [slugs/ft^3]
         
         # initialize actions and observations
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
@@ -45,7 +41,7 @@ class FlightEnv(gym.Env):
         
         # point mass model initial state
         self.state[0] = self.empty + self.fuel  # weight of the aircraft [lbf]
-        self.state[1] = self.np_random.uniform(low=0, high=100, size=(1,))[0] # wind speed [knots]
+        self.state[1] = self.np_random.uniform(low=0, high=30, size=(1,))[0] # wind speed [knots]
         self.state[2] = self.np_random.uniform(low=self.min_speed, high=self.max_speed, size=(1,))[0] # cruise speed [knots]
         
         # determine airspeed and drag based on new initial speed, prevents steep decline in airspeed when new episode starts
@@ -84,12 +80,12 @@ class FlightEnv(gym.Env):
         accel = (self.state[8] - self.drag)*g/self.state[0] # calculate acceleration based on thrust and drag [ft/s^2]
         self.state[2] = float(np.clip(self.state[2] + accel*self.dts*fts_to_knots, self.min_speed, self.max_speed)) # update cruise speed in the state [knots]
 
-        # update fuel and weight
+        # update fuel, weight, wind speed
         fuel_burned = abs(self.state[8]*TSFC*self.dt) # fuel burned in the current time step [lbs]
         self.state[6] -= fuel_burned # update remaining fuel [lbs]
         self.state[0] -= fuel_burned # update weight [lbs]
-        self.state[1] = self.np_random.uniform(low=0, high=20, size=(1,))[0] # update wind speed in the state [knots]
-
+        self.state[1] = float(np.clip(self.state[1] + self.np_random.uniform(-0.5, 0.5), 0, 30)) # small nudge in wind speed [knots]
+        
         # update distance
         distance_traveled = self.state[2] * self.dt # distance traveled in the current time step [nautical miles]
         self.state[7] -= distance_traveled # update remaining distance to cruise end
@@ -105,7 +101,7 @@ class FlightEnv(gym.Env):
         fuel_penalty = fuel_used/5000 # penalty for fuel used
 
         stall_penalty = 0 # initialize stall penalty
-        if self.state[2] < self.stall_speed:
+        if self.state[2] < 128:
             stall_penalty = 5 # large penalty for being below stall speed
 
         reward = -(cruise_speed_diff + 0.5*altitude_diff + fuel_penalty + stall_penalty) # total reward is negative sum of penalties
