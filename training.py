@@ -48,7 +48,7 @@ alt_history = [] # assign altitude to an empty array
 target_alt_history = [] # assign target altitude to an empty array
 reward_history = [] # initialize reward history
 
-for _ in range(1000):
+for _ in range(20000):
   action, _ = model.predict(obs, deterministic=True)  # trained policy w/ no exploration
   obs, reward, done, info = eval_env.step(action)
   
