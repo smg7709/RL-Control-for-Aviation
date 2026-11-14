@@ -1,22 +1,26 @@
 # initialize open ai gym and other tools
 from turtle import done
+import pandas as pd
 import matplotlib.pyplot as plt
 from stable_baselines3 import A2C, PPO, SAC
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize 
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+from stable_baselines3.common.logger import configure
 from environment import FlightEnv
 from gymnasium.wrappers import TimeLimit
   
 # set up PPO model and environment, begin learning
 def make_env():
-  return TimeLimit(FlightEnv(), max_episode_steps=1000) # limit the number of steps per episode to 1000
+  return TimeLimit(FlightEnv(), max_episode_steps=20000) # limit the number of steps per episode to 20000
 
 env = DummyVecEnv([make_env])
 env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_reward=10.0) # normalize observations, states, and rewards to improve training stability
 
+logger = configure("./logs/ppo", ["stdout", "csv"]) # set up logger to log to stdout and csv file
 model = PPO("MlpPolicy", env, gamma=0.99, seed=0, verbose=1) # initialize PPO model
-model.learn(total_timesteps=100000) # train the model for 100000 timesteps
+model.set_logger(logger) # set the logger for the model
+model.learn(total_timesteps=250000) # train the model for 250000 timesteps
 
 model.save("ppo_flight_model") # save the trained model
 env.save("vecnormalize.pkl") # save the VecNormalize statistics for future use
@@ -71,7 +75,7 @@ max_target_speed = max(target_speed_history)
 min_target_alt = min(target_alt_history)
 max_target_alt = max(target_alt_history)
 
-# figure for plotting
+# figure for plotting per step values
 fig, axs = plt.subplots(1, 3, figsize=(6, 12))
 axs[0].plot(target_speed_history, color='orange')
 axs[0].fill_between(range(len(target_speed_history)), min_target_speed, max_target_speed, color='orange', alpha=0.2, label="Target Range")
@@ -95,3 +99,19 @@ plt.suptitle('PPO Performance', fontsize=16)
 plt.tight_layout()
 plt.show()
 
+# figure for plotting entropy and value loss of PPO model
+log_data = pd.read_csv('./logs/ppo/progress.csv') # read the log data
+
+fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+axs[0].plot(log_data["time/totaltimesteps"], -log_data["train/entropy_loss"]) # plot negative entropy loss to show entropy
+axs[0].set_xlabel("Total Timesteps")
+axs[0].set_ylabel("Entropy")
+axs[0].set_title("PPO Entropy")
+
+axs[1].plot(log_data["time/totaltimesteps"], log_data["train/value_loss"]) # plot value loss
+axs[1].set_xlabel("Total Timesteps")
+axs[1].set_ylabel("Value Loss")
+axs[1].set_title("PPO Value Loss")
+
+plt.tight_layout()
+plt.show()
