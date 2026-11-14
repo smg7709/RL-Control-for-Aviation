@@ -103,12 +103,12 @@ plt.show()
 log_data = pd.read_csv('./logs/ppo/progress.csv') # read the log data
 
 fig, axs = plt.subplots(1, 2, figsize=(10, 5))
-axs[0].plot(log_data["time/totaltimesteps"], -log_data["train/entropy_loss"]) # plot negative entropy loss to show entropy
+axs[0].plot(log_data["time/total_timesteps"], -log_data["train/entropy_loss"]) # plot negative entropy loss to show entropy
 axs[0].set_xlabel("Total Timesteps")
 axs[0].set_ylabel("Entropy")
 axs[0].set_title("PPO Entropy")
 
-axs[1].plot(log_data["time/totaltimesteps"], log_data["train/value_loss"]) # plot value loss
+axs[1].plot(log_data["time/total_timesteps"], log_data["train/value_loss"]) # plot value loss
 axs[1].set_xlabel("Total Timesteps")
 axs[1].set_ylabel("Value Loss")
 axs[1].set_title("PPO Value Loss")
