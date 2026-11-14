@@ -18,9 +18,9 @@ env = DummyVecEnv([make_env])
 env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_reward=10.0) # normalize observations, states, and rewards to improve training stability
 
 logger = configure("./logs/ppo", ["stdout", "csv"]) # set up logger to log to stdout and csv file
-model = PPO("MlpPolicy", env, gamma=0.99, seed=0, verbose=1) # initialize PPO model
+model = PPO("MlpPolicy", env, gamma=0.99, seed=1, verbose=1) # initialize PPO model1
 model.set_logger(logger) # set the logger for the model
-model.learn(total_timesteps=250000) # train the model for 250000 timesteps
+model.learn(total_timesteps=50000) # train the model for 250000 timesteps
 
 model.save("ppo_flight_model") # save the trained model
 env.save("vecnormalize.pkl") # save the VecNormalize statistics for future use
