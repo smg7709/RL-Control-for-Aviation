@@ -33,6 +33,14 @@ class FlightEnv(gym.Env):
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(9,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end, thrust
 
+    def edge_penalty(self, value, low, high, margin_frac=0.1):
+        margin = margin_frac*(high-low) # 10% of total range
+        if value < low + margin:
+            return (low + margin - value)/margin
+        if value > high - margin:
+            return (value - (high - margin))/margin
+        return 0.0
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
         self.state = np.zeros(9, dtype=np.float32) # initialize the state array
@@ -92,16 +100,13 @@ class FlightEnv(gym.Env):
         self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-50, 50), 33000, 39000))
 
         # calculate reward based on how close the current state is to the target state
-        cruise_speed_diff = abs(self.state[2] - self.state[3])/20 # difference between current and target cruise speed
+        speed_diff = abs(self.state[2] - self.state[3])/20 # difference between current and target cruise speed
         altitude_diff = abs(self.state[4] - self.state[5])/5000 # difference between current and target altitude
         fuel_penalty  = (self.state[8] - self.min_thrust) / (self.max_thrust - self.min_thrust) # penalty for using more thrust than minimum, normalized to [0, 1]
+        speed_edge = self.edge_penalty(self.state[2], self.min_speed, self.max_speed) # penalty for being near the edge of the speed range
+        alt_edge   = self.edge_penalty(self.state[4], self.min_altitude, self.max_altitude) # penalty for being near the edge of the altitude range
 
-        stall_penalty = 0 # initialize stall penalty
-        if self.state[2] < 128:
-            stall_penalty = 5 # large penalty for being below stall speed
-
-        reward = -(cruise_speed_diff + 0.5*altitude_diff + fuel_penalty + stall_penalty) # total reward is negative sum of penalties
-            # altitude is less important than cruise speed and fuel, so it is weighted less in the reward function
+        reward = -(speed_diff + 0.5 * altitude_diff + 0.2 * fuel_penalty + 0.5 * speed_edge + 0.5 * alt_edge) # total reward is negative sum of penalties
 
         # initialize goal parameters
         terminated = False # initialize termination flag
