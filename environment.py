@@ -92,10 +92,9 @@ class FlightEnv(gym.Env):
         self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-50, 50), 33000, 39000))
 
         # calculate reward based on how close the current state is to the target state
-        fuel_used = (abs(self.state[8]*TSFC)) # amount of fuel used in step
-        cruise_speed_diff = abs(self.state[2] - self.state[3])/100 # difference between current and target cruise speed
+        cruise_speed_diff = abs(self.state[2] - self.state[3])/20 # difference between current and target cruise speed
         altitude_diff = abs(self.state[4] - self.state[5])/5000 # difference between current and target altitude
-        fuel_penalty = fuel_used/5000 # penalty for fuel used
+        fuel_penalty  = (self.state[8] - self.min_thrust) / (self.max_thrust - self.min_thrust) # penalty for using more thrust than minimum, normalized to [0, 1]
 
         stall_penalty = 0 # initialize stall penalty
         if self.state[2] < 128:
@@ -103,8 +102,6 @@ class FlightEnv(gym.Env):
 
         reward = -(cruise_speed_diff + 0.5*altitude_diff + fuel_penalty + stall_penalty) # total reward is negative sum of penalties
             # altitude is less important than cruise speed and fuel, so it is weighted less in the reward function
-
-        #print(cruise_speed_diff, altitude_diff, fuel_penalty, stall_penalty, reward) # print the components of the reward for debugging
 
         # initialize goal parameters
         terminated = False # initialize termination flag
