@@ -12,7 +12,7 @@ from gymnasium.wrappers import TimeLimit
   
 # set up PPO model and environment, begin learning
 def make_env():
-  return TimeLimit(FlightEnv(), max_episode_steps=20000) # limit the number of steps per episode to 20000
+  return TimeLimit(FlightEnv(), max_episode_steps=50000) # limit the number of steps per episode to 50000
 
 env = DummyVecEnv([make_env])
 env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_reward=10.0) # normalize observations, states, and rewards to improve training stability
@@ -20,7 +20,7 @@ env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_reward=10.0) # nor
 logger = configure("./logs/ppo", ["stdout", "csv"]) # set up logger to log to stdout and csv file
 model = PPO("MlpPolicy", env, gamma=0.99, seed=3, verbose=1) # initialize PPO model
 model.set_logger(logger) # set the logger for the model
-model.learn(total_timesteps=50000) # train the model for 250000 timesteps
+model.learn(total_timesteps=300000) # train the model for 300000 timesteps
 
 model.save("ppo_flight_model") # save the trained model
 env.save("vecnormalize.pkl") # save the VecNormalize statistics for future use
@@ -28,7 +28,7 @@ env.save("vecnormalize.pkl") # save the VecNormalize statistics for future use
 # begin evaluation of the trained model
 
 # evaluate policy command
-eval_env = DummyVecEnv([lambda: Monitor(TimeLimit(FlightEnv(), max_episode_steps=1000))]) # create a new evaluation environment
+eval_env = DummyVecEnv([lambda: Monitor(TimeLimit(FlightEnv(), max_episode_steps=50000))]) # create a new evaluation environment
 eval_env = VecNormalize.load("vecnormalize.pkl", eval_env) # load the saved VecNormalize statistics
 eval_env.training = False # set the evaluation environment to evaluation mode
 eval_env.norm_reward = False # disable reward normalization for evaluation
@@ -52,7 +52,7 @@ alt_history = [] # assign altitude to an empty array
 target_alt_history = [] # assign target altitude to an empty array
 reward_history = [] # initialize reward history
 
-for _ in range(20000):
+for _ in range(50000):
   action, _ = model.predict(obs, deterministic=True)  # trained policy w/ no exploration
   obs, reward, done, info = eval_env.step(action)
   

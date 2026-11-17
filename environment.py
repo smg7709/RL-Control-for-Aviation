@@ -33,7 +33,7 @@ class FlightEnv(gym.Env):
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(9,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end, thrust
 
-    def edge_penalty(self, value, low, high, margin_frac=0.1):
+    def edge_penalty(self, value, low, high, margin_frac=0.1): 
         margin = margin_frac*(high-low) # 10% of total range
         if value < low + margin:
             return (low + margin - value)/margin
