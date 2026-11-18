@@ -27,7 +27,6 @@ class FlightEnv(gym.Env):
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
         self.altitude_delta = 250 # maximum change in altitude per time step [ft]
         self.c_drag = 0.035 # coefficient of drag [-]
-        self.air_density = 0.0006 # approximate air density at cruise altitude [slugs/ft^3]
         
         # initialize actions and observations
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
@@ -44,6 +43,7 @@ class FlightEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
         self.state = np.zeros(9, dtype=np.float32) # initialize the state array
+        density = 0.002377 * np.exp(-self.state[5] / 29900)
         
         # point mass model initial state
         self.state[0] = self.empty + self.np_random.uniform(low=30000, high=45000, size=(1,))[0]  # weight of the aircraft [lbf]
@@ -52,7 +52,7 @@ class FlightEnv(gym.Env):
         
         # determine airspeed and drag based on new initial speed, prevents steep decline in airspeed when new episode starts
         airspeed = (self.state[2] - self.state[1])*1.68781 # airspeed [ft/s]
-        self.drag = 0.5*self.air_density*self.c_drag*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
+        self.drag = 0.5*density*self.c_drag*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
 
         self.state[3] = self.np_random.uniform(low=400, high=500, size=(1,))[0] # target cruise speed based on research
         self.state[4] = self.np_random.uniform(low=self.min_altitude, high=self.max_altitude, size=(1,))[0] # altitude [ft]
@@ -69,6 +69,7 @@ class FlightEnv(gym.Env):
         knots_to_fts = 1.68781
         g = 32.2 # gravitational acceleration [ft/s^2]
         TSFC = 0.5 # thrust specific fuel consumption [lbs/(lbf*hr)]
+        density = 0.002377 * np.exp(-self.state[5] / 29900)
         
         # apply action to the environment
         new_speed = float(np.clip(self.state[2] + action[0]*self.speed_delta, self.min_speed, self.max_speed)) # determine new cruise speed [knots]
@@ -77,7 +78,7 @@ class FlightEnv(gym.Env):
         # calculate required acceleration, drag, thrust
         accel_req = (new_speed - self.state[2])*knots_to_fts/self.dts # required acceleration to reach new speed [ft/s^2]
         airspeed = (self.state[2] - self.state[1])*knots_to_fts # airspeed [ft/s]
-        self.drag = 0.5*self.air_density*self.c_drag*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
+        self.drag = 0.5*density*self.c_drag*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
         thrust_req = self.drag + self.state[0]*accel_req/g # required thrust to overcome drag and achieve acceleration [lbf]
 
         # update thrust and speed
@@ -102,11 +103,15 @@ class FlightEnv(gym.Env):
         # calculate reward based on how close the current state is to the target state
         speed_diff = abs(self.state[2] - self.state[3])/20 # difference between current and target cruise speed
         altitude_diff = abs(self.state[4] - self.state[5])/5000 # difference between current and target altitude
-        fuel_penalty  = (self.state[8] - self.min_thrust) / (self.max_thrust - self.min_thrust) # penalty for using more thrust than minimum, normalized to [0, 1]
+        fuel_penalty  = fuel_burned / (self.max_thrust*TSFC*self.dt) # penalty for using more fuel, normalized by max fuel usage per step
         speed_edge = self.edge_penalty(self.state[2], self.min_speed, self.max_speed) # penalty for being near the edge of the speed range
         alt_edge   = self.edge_penalty(self.state[4], self.min_altitude, self.max_altitude) # penalty for being near the edge of the altitude range
 
-        reward = -(speed_diff + 0.5 * altitude_diff + 0.2 * fuel_penalty + 0.5 * speed_edge + 0.5 * alt_edge) # total reward is negative sum of penalties
+        reward = -(0.5 * speed_diff + 
+                   0.5 * altitude_diff + 
+                   2 * fuel_penalty + 
+                   0.5 * speed_edge + 
+                   0.5 * alt_edge) # total reward is negative sum of weighted penalties
 
         # initialize goal parameters
         terminated = False # initialize termination flag
