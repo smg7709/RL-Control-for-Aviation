@@ -57,7 +57,7 @@ class FlightEnv(gym.Env):
         self.state[3] = self.np_random.uniform(low=400, high=500, size=(1,))[0] # target cruise speed based on research
         self.state[4] = self.np_random.uniform(low=self.min_altitude, high=self.max_altitude, size=(1,))[0] # altitude [ft]
         self.state[5] = self.np_random.uniform(low=33000, high=self.max_altitude, size=(1,))[0] # target altitude based on research
-        self.state[6] = self.np_random.uniform(low=35000, high=45000, size=(1,))[0] # fuel amount [lbf]
+        self.state[6] = self.np_random.uniform(low=30000, high=45000, size=(1,))[0] # fuel amount [lbf]
         self.state[7] = self.np_random.uniform(low=2000, high=8000, size=(1,))[0] # total cruise distance [nautical miles]
         self.state[8] = float(np.clip(self.drag, self.min_thrust, self.max_thrust)) # update thrust in the state [lbf]
         
