@@ -5,8 +5,6 @@ from gymnasium import spaces
 from stable_baselines3.common.env_checker import check_env
 import matplotlib.pyplot as plt
 
-# note to self: indexing begins at 0
-
 class FlightEnv(gym.Env):
     def __init__(self):
         super(FlightEnv, self).__init__()
@@ -15,8 +13,8 @@ class FlightEnv(gym.Env):
         self.empty = 110000 # weight of the aircraft [lbf]
         self.min_altitude = 30000 # minimum altitude [ft]
         self.max_altitude = 41000 # maximum altitude [ft]
-        self.min_speed = 300 # minimum cruise speed [knots]
-        self.max_speed = 545 # maximum cruise speed [knots]
+        self.min_speed = 128 # stall speed [knots]
+        self.max_speed = 545 # maximum speed [knots]
         self.min_thrust = 2500 # minimum cruise thrust [lbf]
         self.max_thrust = 12000 # maximum cruise thrust [lbf]
         self.area = 1344 # frontal area [ft^2]

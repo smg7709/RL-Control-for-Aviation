@@ -2,7 +2,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from stable_baselines3 import A2C, PPO, SAC
+from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
@@ -28,7 +28,7 @@ for seed in train_seeds:
   model = PPO("MlpPolicy", env, gamma=0.99, seed=seed, verbose=0) # initialize PPO model
   model.set_logger(logger) # set the logger for the model
   print(f"Training PPO model with seed {seed}...") # print the current seed being trained
-  model.learn(total_timesteps=100000) # train the model for 100000 timesteps
+  model.learn(total_timesteps=500000) # train the model for 100000 timesteps
 
   model.save(f"ppo_flight_model_{seed}") # save the trained model
   env.save(f"vecnormalize.pkl_{seed}") # save the VecNormalize statistics for future use
@@ -171,6 +171,3 @@ def plot_metrics(seeds):
   plt.show()
 
 plot_metrics(train_seeds)
-
-
-
