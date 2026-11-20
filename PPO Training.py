@@ -12,7 +12,7 @@ from gymnasium.wrappers import TimeLimit
   
 # create a function to make the environment with a time limit
 def make_env():
-  return TimeLimit(FlightEnv(), max_episode_steps=50000) # limit the number of steps per episode to 50000
+  return TimeLimit(FlightEnv(), max_episode_steps=1000) # limit the number of steps per episode to 1000 (~2.75 hrs of flight)
 
 # initialize training and evaluation seeds
 train_seeds = [10, 11, 12, 13, 14]
@@ -28,14 +28,14 @@ for seed in train_seeds:
   model = PPO("MlpPolicy", env, gamma=0.99, seed=seed, verbose=0) # initialize PPO model
   model.set_logger(logger) # set the logger for the model
   print(f"Training PPO model with seed {seed}...") # print the current seed being trained
-  model.learn(total_timesteps=500000) # train the model for 100000 timesteps
+  model.learn(total_timesteps=500000) # train the model for 500k timesteps
 
   model.save(f"ppo_flight_model_{seed}") # save the trained model
-  env.save(f"vecnormalize.pkl_{seed}") # save the VecNormalize statistics for future use
+  env.save(f"ppo_vecnormalize.pkl_{seed}") # save the VecNormalize statistics for future use
 
   # evaluate policy using fixed seeds
   eval_env = DummyVecEnv([lambda: Monitor(TimeLimit(FlightEnv(), max_episode_steps=50000))]) # create a new evaluation environment
-  eval_env = VecNormalize.load(f"vecnormalize.pkl_{seed}", eval_env) # load the saved VecNormalize statistics
+  eval_env = VecNormalize.load(f"ppo_vecnormalize.pkl_{seed}", eval_env) # load the saved VecNormalize statistics
   eval_env.training = False # set the evaluation environment to evaluation mode
   eval_env.norm_reward = False # disable reward normalization
   mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=10, deterministic=True) # evaluate the trained model
@@ -74,7 +74,7 @@ for seed in train_seeds:
 def plot_trajectories(seed):
 
   eval_env = DummyVecEnv([make_env]) # create a new evaluation environment
-  eval_env = VecNormalize.load(f"vecnormalize.pkl_{seed}", eval_env) # load the saved VecNormalize statistics
+  eval_env = VecNormalize.load(f"ppo_vecnormalize.pkl_{seed}", eval_env) # load the saved VecNormalize statistics
   eval_env.training = False # set the evaluation environment to evaluation mode
   eval_env.norm_reward = False # disable reward normalization
 
@@ -89,7 +89,7 @@ def plot_trajectories(seed):
   target_alt_history = []
   reward_history = []
 
-  for _ in range(50000):
+  for _ in range(1000):
     action, _ = model.predict(obs, deterministic=True)  # trained policy w/ no exploration
     obs, reward, done, info = eval_env.step(action)
     
@@ -130,7 +130,7 @@ def plot_trajectories(seed):
 
   plt.suptitle(f'PPO Training Performance (Seed {seed})', fontsize=16)
   plt.tight_layout()
-  plt.savefig(f'trajectory_{seed}.png') # save the figure
+  plt.savefig(f'ppo_trajectory_{seed}.png') # save the figure
   plt.close()
 
 for sd in train_seeds:
@@ -167,7 +167,7 @@ def plot_metrics(seeds):
 
   plt.suptitle(f'PPO Training Metrics (All Seeds)', fontsize=16)
   plt.tight_layout()
-  plt.savefig(f'metrics_all_seeds.png') # save the figure
+  plt.savefig(f'ppo_metrics_all_seeds.png') # save the figure
   plt.show()
 
 plot_metrics(train_seeds)
