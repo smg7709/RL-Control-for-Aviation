@@ -80,7 +80,7 @@ def plot_trajectories(seed, eval_seed=1000):
   plt.close()
 
 # define function for plotting PPO model metrics (entropy, value loss)
-def plot_metrics(seeds, eval_seed=1000):
+def plot_metrics(seeds):
 
   # initialize subplots for metrics
   fig, axs = plt.subplots(1, 2, figsize=(10, 5))
@@ -207,7 +207,7 @@ def evaluate_ppo():
 
         plot_trajectories(train_seed, eval_seed=1000) # plots cruise speed, altitude, and reward over a specific evaluation seed
 
-    plot_metrics(train_seeds, eval_seed=1000) # plots PPO metrics over all seeds
+    plot_metrics(train_seeds) # plots PPO metrics over all training episodes
     plot_fuel(train_seed, eval_seeds)
 
     df = pd.DataFrame(records)
