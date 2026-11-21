@@ -74,13 +74,13 @@ def plot_trajectories(seed, eval_seed=1000):
   axs[0].legend()
   axs[1].legend()
 
-  plt.suptitle(f'PPO Performance (Seed {eval_seed})', fontsize=16)
+  plt.suptitle(f'PPO Performance (Training Seed {seed}, Evaluation Seed {eval_seed})', fontsize=16)
   plt.tight_layout()
   plt.savefig(f'ppo_trajectory_{seed}.png') # save the figure
   plt.close()
 
 # define function for plotting PPO model metrics (entropy, value loss)
-def plot_metrics(seeds):
+def plot_metrics(seeds, eval_seed=1000):
 
   # initialize subplots for metrics
   fig, axs = plt.subplots(1, 2, figsize=(10, 5))
@@ -135,13 +135,19 @@ def plot_fuel(train_seed, eval_seeds):
     
     eval_env.close()
 
-    # Plot all 20 individual runs faintly + the mean error curve in bold
+    # plot all 20 individual runs
     plt.figure(figsize=(10, 4))
     for sd in fuel_consumed:
         plt.plot(sd, alpha=0.2) # plot fuel consumption for all 20 evaluation runs
 
-    # Pad/truncate to uniform length if episodes vary, or use np.mean if all are 1000 steps
-    mean_consumption = np.mean(fuel_consumed, axis=0)
+    # ensure lists have equal elements in the case of <1000 steps
+    max_l = max(len(ep) for ep in fuel_consumed)
+    padded_fuel = np.full((len(fuel_consumed), max_l), np.nan)
+    for n, ep in enumerate(fuel_consumed):
+       padded_fuel[n, :len(ep)] = ep
+
+    # plot mean fuel consumption
+    mean_consumption = np.nanmean(padded_fuel, axis=0)
     plt.plot(mean_consumption, color="navy", linewidth=2, label="Mean Fuel Consumption")
     plt.axhline(0.0, color="black", linestyle="--", linewidth=1)
     plt.xlabel("Step")
@@ -151,6 +157,7 @@ def plot_fuel(train_seed, eval_seeds):
     plt.tight_layout()
     plt.savefig(f"ppo_all_fuel_consumed{train_seed}.png")
     plt.close()
+
 
 # PPO evaluation function ---------------------------------------------------------------------
 
@@ -198,9 +205,10 @@ def evaluate_ppo():
 
         eval_env.close()
 
-        plot_trajectories(train_seed, eval_seed=1000) # plots cruise speed, altitude, and reward over seed
+        plot_trajectories(train_seed, eval_seed=1000) # plots cruise speed, altitude, and reward over a specific evaluation seed
 
-    plot_metrics(train_seeds) # plots PPO metrics over all seeds
+    plot_metrics(train_seeds, eval_seed=1000) # plots PPO metrics over all seeds
+    plot_fuel(train_seed, eval_seeds)
 
     df = pd.DataFrame(records)
     df.to_csv("ppo_eval_results.csv", index=False)
