@@ -16,7 +16,7 @@ eval_seeds = list(range(1000, 1020))
 # plotting functions ------------------------------------------------------------------------------
 
 # define a function to plot cruise speed, altitude, and reward over the course of an episode
-def plot_trajectories(seed, eval_seed=1000):
+def plot_trajectories(seed, eval_seeds):
 
   eval_env = DummyVecEnv([make_env]) # create a new evaluation environment
   eval_env = VecNormalize.load(f"sac_vecnormalize.pkl_{seed}", eval_env) # load the saved VecNormalize statistics
@@ -24,60 +24,64 @@ def plot_trajectories(seed, eval_seed=1000):
   eval_env.norm_reward = False # disable reward normalization
 
   model = SAC.load(f"sac_flight_model_{seed}", env=eval_env) # load the trained model
-  eval_env.seed(eval_seed)
-  obs = eval_env.reset() # reset the evaluation environment and get the initial observation
+  
+  for es in eval_seeds:
+    eval_env.seed(es)
+    obs = eval_env.reset() # reset the evaluation environment and get the initial observation
 
-  # assign empty lists to store trajectories
-  fuel_history = []
-  speed_history = []
-  target_speed_history = []
-  alt_history = []
-  target_alt_history = []
-  reward_history = []
+    # assign empty lists to store trajectories
+    fuel_history = []
+    speed_history = []
+    target_speed_history = []
+    alt_history = []
+    target_alt_history = []
+    reward_history = []
 
-  for _ in range(1000):
-    action, _ = model.predict(obs, deterministic=True)  # trained policy w/ no exploration
-    obs, reward, done, info = eval_env.step(action)
-    
-    if done[0]: # check if the episode is done
-      break
+    for _ in range(1000):
+        action, _ = model.predict(obs, deterministic=True)  # trained policy w/ no exploration
+        obs, reward, done, info = eval_env.step(action)
+        
+        if done[0]: # check if the episode is done
+            break
 
-    s = eval_env.envs[0].unwrapped.state # get the non-normalized state from the environment
+        s = eval_env.envs[0].unwrapped.state # get the non-normalized state from the environment
 
-    # append trajectories to lists
-    reward_history.append(float(reward[0]))
-    fuel_history.append(float(s[6]))
-    speed_history.append(float(s[2]))
-    alt_history.append(float(s[4]))
-    target_speed_history.append(float(s[3]))
-    target_alt_history.append(float(s[5]))
+        # append trajectories to lists
+        reward_history.append(float(reward[0]))
+        fuel_history.append(float(s[6]))
+        speed_history.append(float(s[2]))
+        alt_history.append(float(s[4]))
+        target_speed_history.append(float(s[3]))
+        target_alt_history.append(float(s[5]))
 
-  eval_env.close() # close the evaluation environment
+    # initialize subplots and plot trajectories
+    fig, axs = plt.subplots(1, 3, figsize=(15, 4))
 
-  # initialize subplots and plot trajectories
-  fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+    axs[0].plot(target_speed_history, color='orange', label="Target")
+    axs[0].plot(speed_history, label="Cruise Speed")
+    axs[1].plot(target_alt_history, color='orange', label="Target")
+    axs[1].plot(alt_history, label="Altitude")
+    axs[2].plot(reward_history)
 
-  axs[0].plot(target_speed_history, color='orange', label="Target")
-  axs[0].plot(speed_history, label="Cruise Speed")
-  axs[1].plot(target_alt_history, color='orange', label="Target")
-  axs[1].plot(alt_history, label="Altitude")
-  axs[2].plot(reward_history)
+    # set axis labels and figure titles
+    for a, y1 in zip(axs, ["Speed [knots]", "Altitude [ft]", "Reward"]):
+        a.set_xlabel("Step")
+        a.set_ylabel(y1)
 
-  # set axis labels and figure titles
-  for a, y1 in zip(axs, ["Speed [knots]", "Altitude [ft]", "Reward"]):
-    a.set_xlabel("Step")
-    a.set_ylabel(y1)
+    axs[0].set_title("Cruise Speed")
+    axs[1].set_title("Altitude")
+    axs[2].set_title("Reward")
+    axs[0].legend()
+    axs[1].legend()
 
-  axs[0].set_title("Cruise Speed")
-  axs[1].set_title("Altitude")
-  axs[2].set_title("Reward")
-  axs[0].legend()
-  axs[1].legend()
+    plt.suptitle(f'SAC Performance (Training Seed {seed}, Evaluation Seed {es})', fontsize=16)
+    plt.tight_layout()
+    plt.savefig(f'sac_trajectory_t{seed}_e{es}.png') # save the figure
+    plt.close()
 
-  plt.suptitle(f'SAC Performance (Training Seed {seed}, Evaluation Seed {eval_seed})', fontsize=16)
-  plt.tight_layout()
-  plt.savefig(f'sac_trajectory_t{seed}_e{eval_seed}.png') # save the figure
-  plt.close()
+    eval_env.close() # close the evaluation environment
+
+
 
 # define function for plotting SAC model metrics (actor loss, critic loss)
 def plot_metrics(seeds):
@@ -161,7 +165,7 @@ def plot_fuel(train_seed, eval_seeds):
 
 # SAC evaluation function ---------------------------------------------------------------------
 
-def evaluate_sac():
+def evaluate_sac(train_seeds, eval_seeds):
     records = []
 
     for train_seed in train_seeds:
@@ -211,11 +215,6 @@ def evaluate_sac():
 
         eval_env.close()
 
-        plot_trajectories(train_seed, eval_seed=1000) # plots cruise speed, altitude, and reward over a specific evaluation seed
-
-    plot_metrics(train_seeds) # plots SAC metrics over all training episodes
-    plot_fuel(train_seed, eval_seeds)
-
     df = pd.DataFrame(records)
     df.to_csv("sac_eval_results.csv", index=False)
 
@@ -233,5 +232,10 @@ def evaluate_sac():
 
 
 if __name__ == "__main__":
-    evaluate_sac()
+    evaluate_sac(train_seeds, eval_seeds)
+    plot_metrics(train_seeds)
+
+    for sd in train_seeds:
+       plot_trajectories(seed=sd, eval_seeds=eval_seeds)
+       plot_fuel(train_seed=sd, eval_seeds=eval_seeds)
 
