@@ -177,9 +177,10 @@ def evaluate_ppo():
             eval_env.seed(es)
             obs = eval_env.reset()
 
-            # initialize reward, termination condition, and speed error squared
+            # initialize reward, termination condition, and tracking lists
             total_reward = 0.0
             sq_speed_errors = []
+            fuel_burned = []
             done = False
 
             while not done:
@@ -192,6 +193,11 @@ def evaluate_ppo():
                 s = eval_env.envs[0].unwrapped.state # get states
                 speed_err = float(s[3] - s[2])  # target speed - current speed
                 sq_speed_errors.append(speed_err ** 2) # append squared speed error
+                fuel_step = abs(s[8]*0.5*1/360) # fuel burned per step
+                fuel_burned.append(fuel_step) # append fuel burned
+
+            # summarize fuel burned into an average per step
+            fuel_burned_per_step = float(np.mean(fuel_burned))
 
             # append training and evaluation information
             records.append({
@@ -200,7 +206,7 @@ def evaluate_ppo():
                 "eval_seed": es,
                 "return": total_reward,
                 "speed_rmse_knots": float(np.sqrt(np.mean(sq_speed_errors))),
-                "final_fuel": float(eval_env.envs[0].unwrapped.state[6]),
+                "fuel_burned_per_step": fuel_burned_per_step
             })
 
         eval_env.close()
@@ -215,7 +221,7 @@ def evaluate_ppo():
 
     # summary per training seed (across all 20 eval seeds)
     print("\n--- Per-Training-Seed Summary (20 Eval Seeds Each) ---")
-    print(df.groupby("train_seed")[["return", "speed_rmse_knots", "final_fuel"]].agg(["mean", "std"]))
+    print(df.groupby("train_seed")[["return", "speed_rmse_knots", "fuel_burned_per_step"]].agg(["mean", "std"]))
 
     # overall summary across all 5 train seeds x 20 eval seeds = 100 runs
     print(

@@ -22,17 +22,16 @@ class PIController:
 
     def predict(self, obs: np.ndarray, deterministic: bool = True):
        
-        speed, target = float(obs[0]), float(obs[1]) # get speed and target from observation
-        error = target - speed # calculate speed error
+        speed, error = float(obs[2]), float(obs[3]) # get speed and error from observation
 
         # candidate integrator update
         candidate_integral = self.integral + error * self.dt
         u_unsat = self.kp * error + self.ki * candidate_integral
 
         # anti-windup clamping
-        if self.u_min < u_unsat < self.u_max:
+        if self.throttle_min < u_unsat < self.throttle_max:
             self.integral = candidate_integral
-        elif (u_unsat >= self.u_max and error < 0.0) or (u_unsat <= self.u_min and error > 0.0):
+        elif (u_unsat >= self.throttle_max and error < 0.0) or (u_unsat <= self.throttle_min and error > 0.0):
             # unwind integrator if error reverses direction
             self.integral = candidate_integral
 
@@ -41,5 +40,7 @@ class PIController:
         fuel_burned = abs(throttle*0.5*self.dt)
 
         # convert physical throttle [0, 1] -> normalized RL action [-1, 1]
-        norm_action = np.array([2.0 * throttle - 1.0], dtype=np.float32)
-        return norm_action, None
+        norm_throttle = np.array([2.0 * throttle - 1.0], dtype=np.float32)
+        norm_altitude = 0
+        action = np.array([float(np.asarray(norm_throttle).item()), float(np.asarray(norm_altitude).item())], dtype=np.float32)
+        return action, {"fuel_burned": fuel_burned, "throttle": throttle}

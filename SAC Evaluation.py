@@ -79,27 +79,25 @@ def plot_trajectories(seed, eval_seed=1000):
   plt.savefig(f'sac_trajectory_t{seed}_e{eval_seed}.png') # save the figure
   plt.close()
 
-# define function for plotting SAC model metrics (entropy, actor loss, critic loss)
+# define function for plotting SAC model metrics (actor loss, critic loss)
 def plot_metrics(seeds):
 
   # initialize subplots for metrics
-  fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+  fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
   # plot metrics for each seed
   for sd in seeds:
     log_data = pd.read_csv(f'./logs/sac_{sd}/progress.csv') # read the log data
-    axs[0].plot(log_data["time/total_timesteps"], -log_data["train/entropy_loss"], label=f"Seed {sd}") # plot negative entropy loss to show entropy
-    axs[1].plot(log_data["time/total_timesteps"], log_data["train/actor_loss"], label=f"Seed {sd}") # plot actor loss
-    axs[2].plot(log_data["time/total_timesteps"], log_data["train/critic_loss"], label=f"Seed {sd}") # plot actor loss
+    axs[0].plot(log_data["time/total_timesteps"], log_data["train/actor_loss"], label=f"Seed {sd}") # plot actor loss
+    axs[1].plot(log_data["time/total_timesteps"], log_data["train/critic_loss"], label=f"Seed {sd}") # plot actor loss
 
   # set axis labels and figure titles
   for a in axs:
     a.set_xlabel("Total Timesteps")
     a.legend()
   
-  axs[0].set_title("Entropy")
-  axs[1].set_title("Actor Loss")
-  axs[2].set_title("Critic Loss")
+  axs[0].set_title("Actor Loss")
+  axs[1].set_title("Critic Loss")
 
   plt.suptitle(f'SAC Metrics (All Seeds)', fontsize=16)
   plt.tight_layout()
@@ -179,9 +177,10 @@ def evaluate_sac():
             eval_env.seed(es)
             obs = eval_env.reset()
 
-            # initialize reward, termination condition, and speed error squared
+            # initialize reward, termination condition, and tracking lists
             total_reward = 0.0
             sq_speed_errors = []
+            fuel_burned = []
             done = False
 
             while not done:
@@ -194,6 +193,11 @@ def evaluate_sac():
                 s = eval_env.envs[0].unwrapped.state # get states
                 speed_err = float(s[3] - s[2])  # target speed - current speed
                 sq_speed_errors.append(speed_err ** 2) # append squared speed error
+                fuel_step = abs(s[8]*0.5*1/360) # fuel burned per step
+                fuel_burned.append(fuel_step) # append fuel burned
+
+            # summarize fuel burned into an average per step
+            fuel_burned_per_step = float(np.mean(fuel_burned))
 
             # append training and evaluation information
             records.append({
@@ -202,14 +206,14 @@ def evaluate_sac():
                 "eval_seed": es,
                 "return": total_reward,
                 "speed_rmse_knots": float(np.sqrt(np.mean(sq_speed_errors))),
-                "final_fuel": float(eval_env.envs[0].unwrapped.state[6]),
+                "fuel_burned_per_step": fuel_burned_per_step
             })
 
         eval_env.close()
 
         plot_trajectories(train_seed, eval_seed=1000) # plots cruise speed, altitude, and reward over a specific evaluation seed
 
-    # plot_metrics(train_seeds) # plots SAC metrics over all training episodes
+    plot_metrics(train_seeds) # plots SAC metrics over all training episodes
     plot_fuel(train_seed, eval_seeds)
 
     df = pd.DataFrame(records)
@@ -217,7 +221,7 @@ def evaluate_sac():
 
     # summary per training seed (across all 20 eval seeds)
     print("\n--- Per-Training-Seed Summary (20 Eval Seeds Each) ---")
-    print(df.groupby("train_seed")[["return", "speed_rmse_knots", "final_fuel"]].agg(["mean", "std"]))
+    print(df.groupby("train_seed")[["return", "speed_rmse_knots", "fuel_burned_per_step"]].agg(["mean", "std"]))
 
     # overall summary across all 5 train seeds x 20 eval seeds = 100 runs
     print(
