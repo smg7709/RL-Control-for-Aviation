@@ -1,11 +1,9 @@
-from pathlib import Path
 import numpy as np
 import pandas as pd
 from Environment import FlightEnv
 from PIController import PIController
-import gymnasium as gym
 from gymnasium.wrappers import TimeLimit
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import DummyVecEnv, VecEnv
 
 
 train_seeds = [10, 11, 12, 13, 14]
@@ -15,64 +13,70 @@ def make_env():
     return TimeLimit(FlightEnv(), max_episode_steps=1000) # limit the number of steps per episode to 1000 (~2.75 hrs of flight)
 
 def reset_env(env, seed: int):
-    result = env.reset(seed=seed)
-    return result[0] if isinstance(result, tuple) else result
+    if isinstance(env, VecEnv):
+        env.seed(seed)
+        return env.reset()
+    obs, _ = env.reset(seed=seed)
+    return obs
 
 def step_env(env, action):
-    result = env.step(action)
-    if len(result) == 5:
-        obs, reward, terminated, truncated, info = result
-        return obs, float(reward), bool(terminated or truncated), info
-    obs, reward, done, info = result
-    return obs, float(reward), bool(done), info
+    if isinstance(env, VecEnv):
+        obs, reward, done, info = env.step(action)
+        return obs, float(reward[0]), bool(done[0]), info[0]
+    obs, reward, terminated, truncated, info = env.step(action)
+    return obs, float(reward), bool(terminated or truncated), info
 
-def evaluate_pi():
+def evaluate_pi(eval_seeds):
+    env = make_env()
+    pi_contoller = PIController(
+        speed_delta = env.unwrapped.speed_delta,
+        altitude_delta = env.unwrapped.altitude_delta,
+        kps=0.5,
+        kis=0.005,
+        kpa=0.5,
+        kia=0,
+        dt=1/360,
+    )
     records = []
 
-    for train_seed in train_seeds:
-        eval_env = DummyVecEnv([make_env])
-        eval_env.training = False
-        eval_env.norm_reward = False
+    for es in eval_seeds:
+        obs = env.reset(seed=es)
 
-        for es in eval_seeds:
-            eval_env.seed(es)
-            obs = eval_env.reset()
+        controller = PIController(speed_delta = env.unwrapped.speed_delta, altitude_delta = env.unwrapped.altitude_delta)
+        controller.reset()
 
-            controller = PIController()
-            controller.reset()
+        total_reward = 0
+        sq_speed_errors = []
+        fuel_burned = []
+        done = False
 
-            total_reward = 0
-            sq_speed_errors = []
-            fuel_burned = []
-            done = False
+        while not done:
+            s = env.unwrapped.state
 
-            while not done:
-                single_action, _ = controller.predict(obs[0], deterministic=True)
+            action, _ = controller.predict(s)
+            obs, reward, terminated, truncated, info = env.step(action)
 
-                batched_action = np.asarray(single_action, dtype=np.float32).reshape(1, -1)
-                obs, reward, dones, info = eval_env.step(batched_action)
+            total_reward += float(reward)
+            done = terminated or truncated
 
-                total_reward += float(reward[0])
-                done = bool(dones[0])
+            sn = env.unwrapped.state
+            speed_err = float(sn[3]-sn[2])
+            sq_speed_errors.append(speed_err**2)
+            fuel_step = abs(sn[8]*0.5*1/360) # fuel burned per step
+            fuel_burned.append(fuel_step) # append fuel burned
 
-                s = eval_env.envs[0].unwrapped.state
-                speed_err = float(s[3]-s[2])
-                sq_speed_errors.append(speed_err**2)
-                fuel_step = abs(s[8]*0.5*1/360) # fuel burned per step
-                fuel_burned.append(fuel_step) # append fuel burned
+        # summarize fuel burned into an average per step
+        fuel_burned_per_step = float(np.mean(fuel_burned))
 
-            # summarize fuel burned into an average per step
-            fuel_burned_per_step = float(np.mean(fuel_burned))
-
-            records.append({
-                "controller": "PI",
-                "train_seed": train_seed,
-                "eval_seed": es,
-                "return": total_reward,
-                "speed_rmse_knots": float(np.sqrt(np.mean(sq_speed_errors))),
-                "fuel_burned_per_step": fuel_burned_per_step
-            })
-        eval_env.close()
+        records.append({
+            "controller": "PI",
+            "eval_seed": es,
+            "return": total_reward,
+            "speed_rmse_knots": float(np.sqrt(np.mean(sq_speed_errors))),
+            "fuel_burned_per_step": fuel_burned_per_step
+        })
+    
+    env.close()
 
     df = pd.DataFrame(records)
     out_csv = "pi_eval_results.csv"
@@ -93,6 +97,6 @@ def evaluate_pi():
         )
     return df
 
-
 if __name__ == "__main__":
-    evaluate_pi()
+    print("Running PI evaluation...")
+    evaluate_pi(eval_seeds)

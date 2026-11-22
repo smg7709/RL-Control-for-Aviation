@@ -2,45 +2,50 @@ import numpy as np
 
 class PIController:
 
-    def __init__(self, kp: float = 0.18, ki: float = 0.045,  dt: float = 1/360, throttle_min: float = -1.0, throttle_max: float = 1.0,
-    ):
-        # gains
-        self.kp = kp 
-        self.ki = ki
+    def __init__(self, speed_delta: float, altitude_delta: float, kps: float = 0.5, kis: float = 0.005, kpa: float = 0.5, kia: float = 0,  dt: float = 1/360,):
+        
+        # gains scaled
+        self.kps = kps/speed_delta
+        self.kis = kis/speed_delta
+        self.kpa = kpa/altitude_delta
+        self.kia = kia/altitude_delta
         self.dt = dt
+        
+        # initialize integrals
+        self.int_s = 0
+        self.int_a = 0
 
-        # min and max throttle actions
-        self.throttle_min = throttle_min
-        self.throttle_max = throttle_max
-        self.integral = 0.0 # initialize integral sum
+    def reset(self):
+        self.int_s = 0
+        self.int_a = 0
 
-    def reset(self, initial_throttle: float = 0.4):
-        if self.ki > 0.0:
-            self.integral = np.clip(initial_throttle, self.throttle_min, self.throttle_max) / self.ki
-        else:
-            self.integral = 0.0
+    def step_loop(self, error: float, integral: float, kp: float, ki: float):
+        # include anti-windup clamping
+        candidate_int = integral + error*self.dt
+        u_unsat = kp*error + ki*candidate_int
 
-    def predict(self, obs: np.ndarray, deterministic: bool = True):
-       
-        speed, error = float(obs[2]), float(obs[3]) # get speed and error from observation
+        # integrate if unsaturated
+        if (-1 < u_unsat < 1) or (u_unsat >= 1 and error < 0) or (u_unsat <= -1 and error > 0):
+            integral = candidate_int
 
-        # candidate integrator update
-        candidate_integral = self.integral + error * self.dt
-        u_unsat = self.kp * error + self.ki * candidate_integral
+        u = float(np.clip(kp*error + ki*integral, -1, 1))
+        return u, integral
+        
+    def predict(self, state: np.ndarray, deterministic = True):
+       # get raw states from environment
+        speed, target_speed = float(state[2]), float(state[3])
+        altitude, target_altitude = float(state[4]), float(state[5])
 
-        # anti-windup clamping
-        if self.throttle_min < u_unsat < self.throttle_max:
-            self.integral = candidate_integral
-        elif (u_unsat >= self.throttle_max and error < 0.0) or (u_unsat <= self.throttle_min and error > 0.0):
-            # unwind integrator if error reverses direction
-            self.integral = candidate_integral
+        # calculate errors
+        speed_err = target_speed - speed
+        altitude_err = target_altitude - altitude
 
-        # calculate throttle and fuel consumption
-        throttle = float(np.clip(self.kp * error + self.ki * self.integral, self.throttle_min, self.throttle_max))
-        fuel_burned = abs(throttle*0.5*self.dt)
+        # speed (throttle changed)
+        speed_action, self.int_s = self.step_loop(speed_err, self.int_s, self.kps, self.kis)
 
-        # convert physical throttle [0, 1] -> normalized RL action [-1, 1]
-        norm_throttle = np.array([2.0 * throttle - 1.0], dtype=np.float32)
-        norm_altitude = 0
-        action = np.array([float(np.asarray(norm_throttle).item()), float(np.asarray(norm_altitude).item())], dtype=np.float32)
-        return action, {"fuel_burned": fuel_burned, "throttle": throttle}
+        # altitude (pitch changed)
+        altitude_action, self.int_a = self.step_loop(altitude_err, self.int_a, self.kpa, self.kia)
+
+        # return actions
+        action = np.array([speed_action, altitude_action], dtype=np.float32)
+        return action, None
