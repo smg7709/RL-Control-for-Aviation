@@ -23,7 +23,7 @@ def plot_trajectories(seed, eval_seed=1000):
   eval_env.training = False # set the evaluation environment to evaluation mode
   eval_env.norm_reward = False # disable reward normalization
 
-  model = SAC.load(f"_flight_model_{seed}", env=eval_env) # load the trained model
+  model = SAC.load(f"sac_flight_model_{seed}", env=eval_env) # load the trained model
   eval_env.seed(eval_seed)
   obs = eval_env.reset() # reset the evaluation environment and get the initial observation
 
@@ -207,7 +207,7 @@ def evaluate_sac():
 
         plot_trajectories(train_seed, eval_seed=1000) # plots cruise speed, altitude, and reward over a specific evaluation seed
 
-    plot_metrics(train_seeds) # plots SAC metrics over all training episodes
+    # plot_metrics(train_seeds) # plots SAC metrics over all training episodes
     plot_fuel(train_seed, eval_seeds)
 
     df = pd.DataFrame(records)
