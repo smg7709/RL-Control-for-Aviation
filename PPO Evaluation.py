@@ -96,8 +96,8 @@ def plot_metrics(seeds):
     a.set_xlabel("Total Timesteps")
     a.legend()
   
-  axs[0].set_title("PPO Entropy")
-  axs[1].set_title("PPO Value Loss")
+  axs[0].set_title("Entropy")
+  axs[1].set_title("Value Loss")
 
   plt.suptitle(f'PPO Metrics (All Seeds)', fontsize=16)
   plt.tight_layout()

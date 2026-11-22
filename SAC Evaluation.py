@@ -79,25 +79,27 @@ def plot_trajectories(seed, eval_seed=1000):
   plt.savefig(f'sac_trajectory_t{seed}_e{eval_seed}.png') # save the figure
   plt.close()
 
-# define function for plotting SAC model metrics (entropy, value loss)
+# define function for plotting SAC model metrics (entropy, actor loss, critic loss)
 def plot_metrics(seeds):
 
   # initialize subplots for metrics
-  fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+  fig, axs = plt.subplots(1, 3, figsize=(10, 5))
 
   # plot metrics for each seed
   for sd in seeds:
     log_data = pd.read_csv(f'./logs/sac_{sd}/progress.csv') # read the log data
     axs[0].plot(log_data["time/total_timesteps"], -log_data["train/entropy_loss"], label=f"Seed {sd}") # plot negative entropy loss to show entropy
-    axs[1].plot(log_data["time/total_timesteps"], log_data["train/value_loss"], label=f"Seed {sd}") # plot value loss
+    axs[1].plot(log_data["time/total_timesteps"], log_data["train/actor_loss"], label=f"Seed {sd}") # plot actor loss
+    axs[2].plot(log_data["time/total_timesteps"], log_data["train/critic_loss"], label=f"Seed {sd}") # plot actor loss
 
   # set axis labels and figure titles
   for a in axs:
     a.set_xlabel("Total Timesteps")
     a.legend()
   
-  axs[0].set_title("SAC Entropy")
-  axs[1].set_title("SAC Value Loss")
+  axs[0].set_title("Entropy")
+  axs[1].set_title("Actor Loss")
+  axs[2].set_title("Critic Loss")
 
   plt.suptitle(f'SAC Metrics (All Seeds)', fontsize=16)
   plt.tight_layout()
