@@ -78,13 +78,19 @@ def evaluate_pi():
     out_csv = "pi_eval_results.csv"
     df.to_csv(out_csv, index=False)
 
-    summary = df.groupby("train_seed", as_index=False).agg(
+    summary = df.groupby("eval_seed", as_index=False).agg(
         mean_reward=("return", "mean"),
         std_reward=("return", "std"),
         mean_fuel=("fuel_burned_per_step", "mean"),
     )
     print(f"Saved {len(df)} PI evaluation rows to {out_csv}")
     print(summary.to_string(index=False))
+
+    print(
+            f"\nOverall PI Return:     {df['return'].mean():.2f} +/- {df['return'].std():.2f}\n"
+            f"Overall Speed RMSE:     {df['speed_rmse_knots'].mean():.2f} +/- {df['speed_rmse_knots'].std():.2f} knots\n"
+            f"Overall Fuel Used:     {df['fuel_burned_per_step'].mean():.2f} +/- {df['fuel_burned_per_step'].std():.2f} lbs\n"
+        )
     return df
 
 

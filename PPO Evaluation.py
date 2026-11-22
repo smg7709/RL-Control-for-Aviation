@@ -221,12 +221,13 @@ def evaluate_ppo():
 
     # summary per training seed (across all 20 eval seeds)
     print("\n--- Per-Training-Seed Summary (20 Eval Seeds Each) ---")
-    print(df.groupby("train_seed")[["return", "speed_rmse_knots", "fuel_burned_per_step"]].agg(["mean", "std"]))
+    print(df.groupby("eval_seed")[["return", "speed_rmse_knots", "fuel_burned_per_step"]].agg(["mean", "std"]))
 
     # overall summary across all 5 train seeds x 20 eval seeds = 100 runs
     print(
         f"\nOverall PPO Return:     {df['return'].mean():.2f} +/- {df['return'].std():.2f}\n"
-        f"Overall Speed RMSE:     {df['speed_rmse_knots'].mean():.2f} +/- {df['speed_rmse_knots'].std():.2f} knots"
+        f"Overall Speed RMSE:     {df['speed_rmse_knots'].mean():.2f} +/- {df['speed_rmse_knots'].std():.2f} knots\n"
+        f"Overall Fuel Used:     {df['fuel_burned_per_step'].mean():.2f} +/- {df['fuel_burned_per_step'].std():.2f} lbs\n"
     )
     return df
 
