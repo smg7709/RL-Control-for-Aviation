@@ -76,7 +76,7 @@ def plot_trajectories(seed, eval_seed=1000):
 
   plt.suptitle(f'SAC Performance (Training Seed {seed}, Evaluation Seed {eval_seed})', fontsize=16)
   plt.tight_layout()
-  plt.savefig(f'sac_trajectory_{seed}.png') # save the figure
+  plt.savefig(f'sac_trajectory_t{seed}_e{eval_seed}.png') # save the figure
   plt.close()
 
 # define function for plotting SAC model metrics (entropy, value loss)

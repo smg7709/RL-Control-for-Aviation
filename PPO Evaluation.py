@@ -76,7 +76,7 @@ def plot_trajectories(seed, eval_seed=1000):
 
   plt.suptitle(f'PPO Performance (Training Seed {seed}, Evaluation Seed {eval_seed})', fontsize=16)
   plt.tight_layout()
-  plt.savefig(f'ppo_trajectory_{seed}.png') # save the figure
+  plt.savefig(f'ppo_trajectory_t{seed}_e{eval_seed}.png') # save the figure
   plt.close()
 
 # define function for plotting PPO model metrics (entropy, value loss)
