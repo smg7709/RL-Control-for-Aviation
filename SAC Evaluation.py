@@ -102,6 +102,8 @@ def plot_metrics(seeds):
   
   axs[0].set_title("Actor Loss")
   axs[1].set_title("Critic Loss")
+  axs[0].set_yscale("log") # log scale to better see value loss
+  axs[1].set_yscale("log") # log scale to better see value loss
 
   plt.suptitle(f'SAC Metrics (All Seeds)', fontsize=16)
   plt.tight_layout()
