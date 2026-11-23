@@ -9,7 +9,7 @@ class FlightEnv(gym.Env):
     def __init__(self):
         super(FlightEnv, self).__init__()
 
-        # initialize boeing 737 parameters
+        # initialize aircraft parameters
         self.empty = 110000 # weight of the aircraft [lbf]
         self.min_altitude = 30000 # minimum altitude [ft]
         self.max_altitude = 41000 # maximum altitude [ft]

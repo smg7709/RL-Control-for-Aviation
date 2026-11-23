@@ -99,9 +99,10 @@ def plot_metrics(seeds):
   for a in axs:
     a.set_xlabel("Total Timesteps")
     a.legend()
-  
+
   axs[0].set_title("Entropy")
   axs[1].set_title("Value Loss")
+  axs[1].set_yscale("log") # log scale to better see value loss
 
   plt.suptitle(f'PPO Metrics (All Seeds)', fontsize=16)
   plt.tight_layout()
