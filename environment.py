@@ -19,6 +19,7 @@ class FlightEnv(gym.Env):
         self.max_thrust = 12000 # maximum cruise thrust [lbf]
         self.min_pitch = -15 # minimum pitch angle [deg]
         self.max_pitch = 20 # maximum pitch angle [deg]
+        self.trim_pitch = 3 # trim pitch angle [deg]
         self.area = 1344 # frontal area [ft^2]
 
         # initialize simulation parameters
@@ -30,8 +31,8 @@ class FlightEnv(gym.Env):
         self.c_drag = 0.035 # coefficient of drag [-]
         
         # initialize actions and observations
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(9,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end, thrust
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(10,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance to cruise end, thrust
 
     def edge_penalty(self, value, low, high, margin_frac=0.1): 
         margin = margin_frac*(high-low) # 10% of total range
@@ -43,8 +44,8 @@ class FlightEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
-        self.state = np.zeros(9, dtype=np.float32) # initialize the state array
-        density = 0.002377 * np.exp(-self.state[5] / 29900)
+        self.state = np.zeros(10, dtype=np.float32) # initialize the state array
+        density = 0.002377 * np.exp(-self.state[4] / 29900)
         
         # point mass model initial state
         self.state[0] = self.empty + self.np_random.uniform(low=30000, high=45000, size=(1,))[0]  # weight of the aircraft [lbf]
@@ -61,6 +62,7 @@ class FlightEnv(gym.Env):
         self.state[6] = self.np_random.uniform(low=30000, high=45000, size=(1,))[0] # fuel amount [lbf]
         self.state[7] = self.np_random.uniform(low=2000, high=8000, size=(1,))[0] # total cruise distance [nautical miles]
         self.state[8] = float(np.clip(self.drag, self.min_thrust, self.max_thrust)) # update thrust in the state [lbf]
+        self.state[9] = self.np_random.uniform(low=self.min_pitch, high=self.max_pitch, size=(1,))[0] # update pitch angle [deg]
         
         return self._obs(), {}
 
@@ -68,18 +70,24 @@ class FlightEnv(gym.Env):
         # important constants
         fts_to_knots = 0.592484
         knots_to_fts = 1.68781
+        deg_to_rad = np.pi/180
         g = 32.2 # gravitational acceleration [ft/s^2]
         TSFC = 0.5 # thrust specific fuel consumption [lbs/(lbf*hr)]
         density = 0.002377 * np.exp(-self.state[5] / 29900)
         
         # apply action to the environment
+        self.state[9] = float(np.clip(self.state[9] + action[2]*self.pitch_delta_delta, self.min_pitch, self.max_pitch)) # adjust pitch angle [deg]
         new_speed = float(np.clip(self.state[2] + action[0]*self.speed_delta, self.min_speed, self.max_speed)) # determine new cruise speed [knots]
         self.state[4] = float(np.clip(self.state[4] + action[1]*self.altitude_delta, self.min_altitude, self.max_altitude)) # adjust altitude [ft]
 
-        # calculate required acceleration, drag, thrust
+        # calculate required acceleration and airspeed
         accel_req = (new_speed - self.state[2])*knots_to_fts/self.dts # required acceleration to reach new speed [ft/s^2]
         airspeed = (self.state[2] - self.state[1])*knots_to_fts # airspeed [ft/s]
-        self.drag = 0.5*density*self.c_drag*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
+        
+        # calculate drag and thrust required to overcome drag
+        pitch_diff = deg_to_rad(self.state[9]-self.trim_pitch) # pitch difference [rad]
+        c_drag_eff = self.c_drag*(1.05*(pitch_diff)**2) # effective coefficient of drag [-], dependent on current pitch angle and trim angle
+        self.drag = 0.5*density*c_drag_eff*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
         thrust_req = self.drag + self.state[0]*accel_req/g # required thrust to overcome drag and achieve acceleration [lbf]
 
         # update thrust and speed
@@ -136,6 +144,7 @@ class FlightEnv(gym.Env):
             self.state[6], # fuel [lbs]
             self.state[7], # remaining distance [nautical miles]
             self.state[8], # thrust [lbf]
+            self.state[9], # pitch angle [deg]
         ], dtype=np.float32)
 
 # check the environment
