@@ -125,27 +125,33 @@ class FlightEnv(gym.Env):
             self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-200, 200), 33000, 39000)) # target altitude [knots]
 
 
-        # REWARD FUNCTION ----------------------------------------------------------------------------------------------------
+        # REWARD EQUATION ----------------------------------------------------------------------------------------------------
+        terminated = False # initialize termination flag
+        
         speed_diff = abs(self.state[3] - self.state[2])/20 # target speed - current speed
         altitude_diff = abs(self.state[5] - self.state[4])/5000 # target altitude - current altitude
+
         fuel_penalty  = fuel_burned / (self.max_thrust*TSFC*self.dt) # fuel used in step, normalized by max fuel usage per step
+
         speed_edge = self.edge_penalty(self.state[2], self.min_speed, self.max_speed) # penalty for being near the edge of the speed range
         alt_edge   = self.edge_penalty(self.state[4], self.min_altitude, self.max_altitude) # penalty for being near the edge of the altitude range
 
-        reward = -(0.5 * speed_diff + 
-                   0.5 * altitude_diff + 
-                   2 * fuel_penalty + 
-                   0.5 * speed_edge + 
-                   0.5 * alt_edge) # total reward is negative sum of weighted penalties
+        # initialize fuel and distance constant rewards
+        dist_reward = 0
+        zerofuel_penalty = 0
 
-        # initialize goal parameters
-        terminated = False # initialize termination flag
+        # check if cruise end reached
         if self.state[7] <= 0:
-            terminated = True # mark the episode as terminated if cruise end is reached
-            reward = 500 # large reward for reaching cruise end
+            dist_reward = 500 # large reward for reaching end of cruise
+            terminated = True # end episode
+        
+        # check if fuel has run out
         if self.state[6] <= 0:
-            terminated = True # mark the episode as terminated if run out of fuel
-            reward = -500 # large penalty for running out of fuel
+            zerofuel_penalty = -500 # large penalty for running out of fuel
+            terminated = True # end episode
+
+        # total reward is the negative sum of 5 weighted components plus fuel and distance constants
+        reward = -(0.5 * speed_diff + 0.5 * altitude_diff + 2 * fuel_penalty + 0.5 * speed_edge + 0.5 * alt_edge) + dist_reward + zerofuel_penalty
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 

@@ -9,6 +9,10 @@ Standard PPO and RL parameters
 Speed and Altitude control PI
 
 V2:
+PPO parameters changed to gamma = 0.999 and LR = 1e-4
+
+V3:
 PPO timesteps reduced to 250,000 to match SAC
 PPO and SAC parameters made equal (gamma = 0.999, LR = 1e-4)
-Pitch control added to action space
+Pitch control added to action space for RL and PI
+Decreased total fuel and distance, added reward/penalty constants for those termination conditions
