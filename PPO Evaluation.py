@@ -196,8 +196,8 @@ def evaluate_ppo(train_seeds, eval_seeds):
                 done = bool(dones[0]) # redefine termination condition
 
                 s = eval_env.envs[0].unwrapped.state # get states
-                speed_err = float(s[3] - s[2])  # target speed - current speed
-                sq_speed_errors.append(speed_err ** 2) # append squared speed error
+                speed_err = float(s[3]-s[2])  # speed error
+                alt_err = float(s[5]-s[4]) # altitude error
                 fuel_step = abs(s[8]*0.5*1/360) # fuel burned per step
                 fuel_burned.append(fuel_step) # append fuel burned
 
@@ -210,7 +210,8 @@ def evaluate_ppo(train_seeds, eval_seeds):
                 "train_seed": train_seed,
                 "eval_seed": es,
                 "return": total_reward,
-                "speed_rmse_knots": float(np.sqrt(np.mean(sq_speed_errors))),
+                "altitude error": alt_err,
+                "speed error": speed_err,
                 "fuel_burned_per_step": fuel_burned_per_step
             })
 

@@ -60,24 +60,27 @@ def evaluate_pi(eval_seeds):
             done = terminated or truncated
 
             sn = env.unwrapped.state
-            speed_err = float(sn[3]-sn[2])
-            sq_speed_errors.append(speed_err**2)
+            alt_err = float(sn[5]-sn[4]) # altitude error
+            speed_err = float(sn[3]-sn[2]) # speed error
             fuel_step = abs(sn[8]*0.5*1/360) # fuel burned per step
             fuel_burned.append(fuel_step) # append fuel burned
 
         # summarize fuel burned into an average per step
         fuel_burned_per_step = float(np.mean(fuel_burned))
 
+        # append metrics to file
         records.append({
             "controller": "PI",
             "eval_seed": es,
             "return": total_reward,
-            "speed_rmse_knots": float(np.sqrt(np.mean(sq_speed_errors))),
+            "altitude error": alt_err,
+            "speed error": speed_err,
             "fuel_burned_per_step": fuel_burned_per_step
         })
     
     env.close()
 
+    # save data frame to csv
     df = pd.DataFrame(records)
     out_csv = "pi_eval_results.csv"
     df.to_csv(out_csv, index=False)
