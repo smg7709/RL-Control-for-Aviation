@@ -199,6 +199,7 @@ def evaluate_sac(train_seeds, eval_seeds):
                 s = eval_env.envs[0].unwrapped.state # get states
                 speed_err = float(s[3]-s[2])  # speed error
                 alt_err = float(s[5]-s[4]) # altitude error
+                pitch_err = float(3-s[9]) # pitch error
                 fuel_step = abs(s[8]*0.5*1/360) # fuel burned per step
                 fuel_burned.append(fuel_step) # append fuel burned
 
@@ -213,6 +214,7 @@ def evaluate_sac(train_seeds, eval_seeds):
                 "return": total_reward,
                 "altitude error": alt_err,
                 "speed error": speed_err,
+                "pitch error": pitch_err,
                 "fuel_burned_per_step": fuel_burned_per_step
             })
 

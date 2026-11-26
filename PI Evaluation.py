@@ -62,6 +62,7 @@ def evaluate_pi(eval_seeds):
             sn = env.unwrapped.state
             alt_err = float(sn[5]-sn[4]) # altitude error
             speed_err = float(sn[3]-sn[2]) # speed error
+            pitch_err = float(3-sn[9]) # pitch error
             fuel_step = abs(sn[8]*0.5*1/360) # fuel burned per step
             fuel_burned.append(fuel_step) # append fuel burned
 
@@ -75,6 +76,7 @@ def evaluate_pi(eval_seeds):
             "return": total_reward,
             "altitude error": alt_err,
             "speed error": speed_err,
+            "pitch error": pitch_err,
             "fuel_burned_per_step": fuel_burned_per_step
         })
     
