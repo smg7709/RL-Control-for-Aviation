@@ -27,8 +27,9 @@ class FlightEnv(gym.Env):
         self.dts = self.dt*3600 # time step [s]
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
         self.altitude_delta = 250 # maximum change in altitude per time step [ft]
-        self.pitch_delta = 2 # maximum change in pitch angle per time step
+        self.pitch_delta = 2 # maximum change in pitch angle per time step [deg]
         self.c_drag = 0.035 # coefficient of drag [-]
+        self.step_count = 0 # number of steps
         
         # initialize actions and observations
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32) # continuous action space for cruise speed and altitude adjustments
@@ -44,8 +45,8 @@ class FlightEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed) # reset the environment with the given seed
+        self.step_count = 0 # number of steps
         self.state = np.zeros(10, dtype=np.float32) # initialize the state array
-        density = 0.002377 * np.exp(-self.state[4] / 29900)
         
         # point mass model initial state
         self.state[0] = self.empty + self.np_random.uniform(low=30000, high=45000, size=(1,))[0]  # weight of the aircraft [lbf]
@@ -54,13 +55,14 @@ class FlightEnv(gym.Env):
         
         # determine airspeed and drag based on new initial speed, prevents steep decline in airspeed when new episode starts
         airspeed = (self.state[2] - self.state[1])*1.68781 # airspeed [ft/s]
+        density = 0.002377 * np.exp(-self.state[4] / 29900) # density based on current altitude [lb/ft^3]
         self.drag = 0.5*density*self.c_drag*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
 
         self.state[3] = self.np_random.uniform(low=400, high=500, size=(1,))[0] # target cruise speed based on research
         self.state[4] = self.np_random.uniform(low=self.min_altitude, high=self.max_altitude, size=(1,))[0] # altitude [ft]
         self.state[5] = self.np_random.uniform(low=33000, high=self.max_altitude, size=(1,))[0] # target altitude based on research
-        self.state[6] = self.np_random.uniform(low=30000, high=45000, size=(1,))[0] # fuel amount [lbf]
-        self.state[7] = self.np_random.uniform(low=2000, high=8000, size=(1,))[0] # total cruise distance [nautical miles]
+        self.state[6] = self.np_random.uniform(low=15000, high=25000, size=(1,))[0] # fuel amount [lbf]
+        self.state[7] = self.np_random.uniform(low=1000, high=3500, size=(1,))[0] # total cruise distance [nautical miles]
         self.state[8] = float(np.clip(self.drag, self.min_thrust, self.max_thrust)) # update thrust in the state [lbf]
         self.state[9] = self.np_random.uniform(low=self.min_pitch, high=self.max_pitch, size=(1,))[0] # update pitch angle [deg]
         
@@ -73,7 +75,8 @@ class FlightEnv(gym.Env):
         deg_to_rad = np.pi/180
         g = 32.2 # gravitational acceleration [ft/s^2]
         TSFC = 0.5 # thrust specific fuel consumption [lbs/(lbf*hr)]
-        density = 0.002377 * np.exp(-self.state[5] / 29900)
+        density = 0.002377 * np.exp(-self.state[4] / 29900)
+        self.step_count += 1 # update step count
         
         # apply action to the environment
         self.state[9] = float(np.clip(self.state[9] + action[2]*self.pitch_delta_delta, self.min_pitch, self.max_pitch)) # adjust pitch angle [deg]
@@ -105,9 +108,10 @@ class FlightEnv(gym.Env):
         distance_traveled = self.state[2] * self.dt # distance traveled in the current time step [nautical miles]
         self.state[7] -= distance_traveled # update remaining distance to cruise end
 
-        # gently update target cruise speed and altitude
-        self.state[3] = float(np.clip(self.state[3] + self.np_random.uniform(-0.5, 0.5), 400, 500))
-        self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-50, 50), 33000, 39000))
+        # update target cruise speed and altitude every 10 steps consistent w/ ATC commands
+        if self.step_count % 10 == 0:
+            self.state[3] = float(np.clip(self.state[3] + self.np_random.uniform(-5, 5), 400, 500))
+            self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-200, 200), 33000, 39000))
 
         # calculate reward based on how close the current state is to the target state
         speed_diff = abs(self.state[2] - self.state[3])/20 # difference between current and target cruise speed
@@ -126,10 +130,10 @@ class FlightEnv(gym.Env):
         terminated = False # initialize termination flag
         if self.state[7] <= 0:
             terminated = True # mark the episode as terminated if cruise end is reached
-            reward = 100 # large reward for reaching cruise end
+            reward = 500 # large reward for reaching cruise end
         if self.state[6] <= 0:
             terminated = True # mark the episode as terminated if run out of fuel
-            reward = -100 # large penalty for running out of fuel
+            reward = -500 # large penalty for running out of fuel
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
