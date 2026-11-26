@@ -23,7 +23,7 @@ for seed in train_seeds:
   env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_reward=10.0) # normalize observations, states, and rewards to improve training stability
 
   logger = configure(f"./logs/sac_{seed}", ["stdout", "csv"]) # set up logger to log to stdout and csv file
-  model = SAC("MlpPolicy", env, gamma=0.99, seed=seed, verbose=0) # initialize SAC model
+  model = SAC("MlpPolicy", env, gamma=0.999, learning_rate=1e-4, seed=seed, verbose=0) # initialize SAC model
   model.set_logger(logger) # set the logger for the model
   print(f"Training SAC model with seed {seed}...") # print the current seed being trained
   model.learn(total_timesteps=250000) # train the model for 250k timesteps

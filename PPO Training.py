@@ -26,7 +26,7 @@ for seed in train_seeds:
   model = PPO("MlpPolicy", env, gamma=0.999, learning_rate=1e-4, target_kl=0.02, seed=seed, verbose=0) # initialize PPO model
   model.set_logger(logger) # set the logger for the model
   print(f"Training PPO model with seed {seed}...") # print the current seed being trained
-  model.learn(total_timesteps=500000) # train the model for 500k timesteps
+  model.learn(total_timesteps=250000) # train the model for 250k timesteps
 
   model.save(f"ppo_flight_model_{seed}") # save the trained model
   env.save(f"ppo_vecnormalize.pkl_{seed}") # save the VecNormalize statistics for future use

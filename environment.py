@@ -17,6 +17,8 @@ class FlightEnv(gym.Env):
         self.max_speed = 545 # maximum speed [knots]
         self.min_thrust = 2500 # minimum cruise thrust [lbf]
         self.max_thrust = 12000 # maximum cruise thrust [lbf]
+        self.min_pitch = -15 # minimum pitch angle [deg]
+        self.max_pitch = 20 # maximum pitch angle [deg]
         self.area = 1344 # frontal area [ft^2]
 
         # initialize simulation parameters
@@ -24,6 +26,7 @@ class FlightEnv(gym.Env):
         self.dts = self.dt*3600 # time step [s]
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
         self.altitude_delta = 250 # maximum change in altitude per time step [ft]
+        self.pitch_delta = 2 # maximum change in pitch angle per time step
         self.c_drag = 0.035 # coefficient of drag [-]
         
         # initialize actions and observations
@@ -118,6 +121,7 @@ class FlightEnv(gym.Env):
             reward = 100 # large reward for reaching cruise end
         if self.state[6] <= 0:
             terminated = True # mark the episode as terminated if run out of fuel
+            reward = -100 # large penalty for running out of fuel
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
