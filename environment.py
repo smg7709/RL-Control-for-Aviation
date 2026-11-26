@@ -79,7 +79,7 @@ class FlightEnv(gym.Env):
         self.step_count += 1 # update step count
         
         # apply action to the environment
-        self.state[9] = float(np.clip(self.state[9] + action[2]*self.pitch_delta_delta, self.min_pitch, self.max_pitch)) # adjust pitch angle [deg]
+        self.state[9] = float(np.clip(self.state[9] + action[2]*self.pitch_delta, self.min_pitch, self.max_pitch)) # adjust pitch angle [deg]
         new_speed = float(np.clip(self.state[2] + action[0]*self.speed_delta, self.min_speed, self.max_speed)) # determine new cruise speed [knots]
         self.state[4] = float(np.clip(self.state[4] + action[1]*self.altitude_delta, self.min_altitude, self.max_altitude)) # adjust altitude [ft]
 
@@ -88,7 +88,7 @@ class FlightEnv(gym.Env):
         airspeed = (self.state[2] - self.state[1])*knots_to_fts # airspeed [ft/s]
         
         # calculate drag and thrust required to overcome drag
-        pitch_diff = deg_to_rad(self.state[9]-self.trim_pitch) # pitch difference [rad]
+        pitch_diff = deg_to_rad*(self.state[9]-self.trim_pitch) # pitch difference [rad]
         c_drag_eff = self.c_drag*(1.05*(pitch_diff)**2) # effective coefficient of drag [-], dependent on current pitch angle and trim angle
         self.drag = 0.5*density*c_drag_eff*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
         thrust_req = self.drag + self.state[0]*accel_req/g # required thrust to overcome drag and achieve acceleration [lbf]
