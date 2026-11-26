@@ -31,10 +31,13 @@ def evaluate_pi(eval_seeds):
     pi_contoller = PIController(
         speed_delta = env.unwrapped.speed_delta,
         altitude_delta = env.unwrapped.altitude_delta,
+        pitch_delta = env.unwrapped.pitch_delta,
         kps=0.5,
         kis=0.005,
         kpa=0.5,
         kia=0,
+        kpp=0.5,
+        kip=0,
         dt=1/360,
     )
     records = []
@@ -42,11 +45,10 @@ def evaluate_pi(eval_seeds):
     for es in eval_seeds:
         obs = env.reset(seed=es)
 
-        controller = PIController(speed_delta = env.unwrapped.speed_delta, altitude_delta = env.unwrapped.altitude_delta)
+        controller = PIController(speed_delta = env.unwrapped.speed_delta, altitude_delta = env.unwrapped.altitude_delta, pitch_delta = env.unwrapped.pitch_delta)
         controller.reset()
 
         total_reward = 0
-        sq_speed_errors = []
         fuel_burned = []
         done = False
 
@@ -97,7 +99,6 @@ def evaluate_pi(eval_seeds):
 
     print(
             f"\nOverall PI Return:     {df['return'].mean():.2f} +/- {df['return'].std():.2f}\n"
-            f"Overall Speed RMSE:     {df['speed_rmse_knots'].mean():.2f} +/- {df['speed_rmse_knots'].std():.2f} knots\n"
             f"Overall Fuel Used:     {df['fuel_burned_per_step'].mean():.2f} +/- {df['fuel_burned_per_step'].std():.2f} lbs\n"
         )
     return df

@@ -184,7 +184,6 @@ def evaluate_ppo(train_seeds, eval_seeds):
 
             # initialize reward, termination condition, and tracking lists
             total_reward = 0.0
-            sq_speed_errors = []
             fuel_burned = []
             done = False
 
@@ -229,7 +228,6 @@ def evaluate_ppo(train_seeds, eval_seeds):
     # overall summary across all 5 train seeds x 20 eval seeds = 100 runs
     print(
         f"\nOverall PPO Return:     {df['return'].mean():.2f} +/- {df['return'].std():.2f}\n"
-        f"Overall Speed RMSE:     {df['speed_rmse_knots'].mean():.2f} +/- {df['speed_rmse_knots'].std():.2f} knots\n"
         f"Overall Fuel Used:     {df['fuel_burned_per_step'].mean():.2f} +/- {df['fuel_burned_per_step'].std():.2f} lbs\n"
     )
     return df
