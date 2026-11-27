@@ -90,6 +90,7 @@ class FlightEnv(gym.Env):
         g = 32.2 # gravitational acceleration [ft/s^2]
         TSFC = 0.5 # thrust specific fuel consumption [lbs/(lbf*hr)]
         density = 0.002377 * np.exp(-self.state[4] / 29900) # density based on current altitude [lb/ft^3]
+        kpd = 1.05 # weight for drag due to pitch [-], prevents drag from becoming infinitesimally small
         self.step_count += 1 # update step count
         
         # apply action to the environment
@@ -103,7 +104,7 @@ class FlightEnv(gym.Env):
         
         # calculate drag and thrust required to overcome drag
         pitch_diff = self.deg_to_rad*(self.state[9]-self.trim_pitch) # pitch difference [rad]
-        c_drag_eff = self.c_drag*(1.05*(pitch_diff)**2) # effective coefficient of drag [-], dependent on current pitch angle and trim angle
+        c_drag_eff = self.c_drag*(1.0+kpd*(pitch_diff)**2) # effective coefficient of drag [-], dependent on current pitch angle and trim angle
         self.drag = 0.5*density*c_drag_eff*self.area*airspeed**2 # calculate aerodynamic drag based on airspeed [lbf]
         thrust_req = self.drag + self.state[0]*accel_req/g # required thrust to overcome drag and achieve acceleration [lbf]
 
@@ -119,8 +120,8 @@ class FlightEnv(gym.Env):
         self.state[1] = float(np.clip(self.state[1] + self.np_random.uniform(-0.5, 0.5), 0, 30)) # nudge wind speed [knots]
         self.state[7] -= self.state[2] * self.dt # update remaining distance [nautical miles]
 
-        # update target cruise speed and altitude every 10 steps (to mimic ATC commands)
-        if self.step_count % 10 == 0:
+        # update target cruise speed and altitude every 25 steps (250s) to mimic ATC commands
+        if self.step_count % 25 == 0:
             self.state[3] = float(np.clip(self.state[3] + self.np_random.uniform(-5, 5), 400, 500)) # target cruise speed [knots]
             self.state[5] = float(np.clip(self.state[5] + self.np_random.uniform(-200, 200), 33000, 39000)) # target altitude [knots]
 
@@ -130,6 +131,7 @@ class FlightEnv(gym.Env):
         
         s_d = abs(self.state[3] - self.state[2])/20 # target speed - current speed
         a_d = abs(self.state[5] - self.state[4])/5000 # target altitude - current altitude
+        p_d = abs(self.trim_pitch - self.state[9]) # trim pitch - current pitch
 
         f_c = fuel_burned / (self.max_thrust*TSFC*self.dt) # fuel used in step, normalized by max fuel usage per step
 
@@ -150,8 +152,8 @@ class FlightEnv(gym.Env):
             f_z = -500 # large penalty for running out of fuel
             terminated = True # end episode
 
-        # total reward is the negative sum of 5 weighted components plus fuel and distance constants
-        reward = -(0.5*s_d + 0.5*a_d + 2*f_c + 0.5*s_e + 0.5*a_e) + d_z + f_z
+        # total reward is the negative sum of 6 weighted components plus fuel and distance constants
+        reward = -(0.5*s_d + 0.5*a_d + 0.5*p_d + 2*f_c + 0.5*s_e + 0.5*a_e) + d_z + f_z
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
