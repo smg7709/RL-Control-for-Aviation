@@ -35,8 +35,8 @@ class FlightEnv(gym.Env):
         self.dts = self.dt*3600 # time step [s]
 
         self.speed_delta = 1 # maximum change in cruise speed per time step [knots]
-        self.altitude_delta = 250 # maximum change in altitude per time step [ft]
-        self.pitch_delta = 2 # maximum change in pitch angle per time step [deg]
+        self.altitude_delta = 50 # maximum change in altitude per time step [ft]
+        self.pitch_delta = 0.5 # maximum change in pitch angle per time step [deg]
 
         self.step_count = 0 # number of steps
 

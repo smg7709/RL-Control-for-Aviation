@@ -13,7 +13,7 @@ def make_env():
 train_seeds = [10, 11, 12, 13, 14]
 eval_seeds = list(range(1000, 1020))
 
-# plotting functions ------------------------------------------------------------------------------
+# PLOTTING FUNCTIONS ------------------------------------------------------------------------------
 
 # define a function to plot cruise speed, altitude, and reward over the course of an episode
 def plot_trajectories(seed, eval_seeds):
@@ -80,8 +80,6 @@ def plot_trajectories(seed, eval_seeds):
     plt.close()
 
     eval_env.close() # close the evaluation environment
-
-
 
 # define function for plotting PPO model metrics (entropy, value loss)
 def plot_metrics(seeds):
@@ -163,8 +161,7 @@ def plot_fuel(train_seed, eval_seeds):
     plt.savefig(f"ppo_all_fuel_consumed{train_seed}.png")
     plt.close()
 
-
-# PPO evaluation function ---------------------------------------------------------------------
+# PPO EVALUATION FUNCTION ---------------------------------------------------------------------
 
 def evaluate_ppo(train_seeds, eval_seeds):
     records = []
