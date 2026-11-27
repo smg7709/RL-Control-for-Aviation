@@ -21,7 +21,7 @@ for seed in train_seeds:
   model = SAC("MlpPolicy", env, gamma=0.999, learning_rate=3e-4, seed=seed, verbose=0) # initialize SAC model
   model.set_logger(logger) # set the logger for the model
   print(f"Training SAC model with seed {seed}...") # print the current seed being trained
-  model.learn(total_timesteps=250000) # train the model for 250k timesteps
+  model.learn(total_timesteps=400000) # train the model for 400k timesteps
 
   model.save(f"sac_flight_model_{seed}") # save the trained model
   env.save(f"sac_vecnormalize.pkl_{seed}") # save the VecNormalize statistics for future use

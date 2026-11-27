@@ -16,3 +16,8 @@ PPO timesteps reduced to 250,000 to match SAC
 PPO and SAC parameters made equal (gamma = 0.999, LR = 1e-4)
 Pitch control added to action space for RL and PI
 Decreased total fuel and distance, added reward/penalty constants for those termination conditions
+
+V4:
+Added pitch difference reward
+PPO and SAC timesteps set to 400,000
+PPO and SAC learning rates set to 3e-4 due to higher number of actions
