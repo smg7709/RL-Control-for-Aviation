@@ -130,7 +130,7 @@ class FlightEnv(gym.Env):
         terminated = False # initialize termination flag
         
         s_d = abs(self.state[3] - self.state[2])/20 # target speed - current speed
-        a_d = abs(self.state[5] - self.state[4])/5000 # target altitude - current altitude
+        a_d = abs(self.state[5] - self.state[4])/1000 # target altitude - current altitude
         p_d = abs(self.trim_pitch - self.state[9]) # trim pitch - current pitch
 
         f_c = fuel_burned / (self.max_thrust*TSFC*self.dt) # fuel used in step, normalized by max fuel usage per step
