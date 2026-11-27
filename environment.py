@@ -48,7 +48,7 @@ class FlightEnv(gym.Env):
         
         # initialize actions and observations
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32) # continuous action space for speed, altitude, pitch adjustments
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(10,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance, thrust, pitch angle
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(11,), dtype=np.float32)  # weight, wind speed, cruise speed, target cruise speed, altitude, target altitude, remaining fuel, remaining distance, thrust, pitch angle
 
     def edge_penalty(self, value, low, high, margin_frac=0.1): 
         margin = margin_frac*(high-low) # 10% of total range
@@ -153,7 +153,7 @@ class FlightEnv(gym.Env):
             terminated = True # end episode
 
         # total reward is the negative sum of 6 weighted components plus fuel and distance constants
-        reward = -(0.5*s_d + 0.5*a_d + 0.5*p_d + 2*f_c + 0.5*s_e + 0.5*a_e) + d_z + f_z
+        reward = -(s_d + a_d + p_d + 2*f_c + 0.5*s_e + 0.5*a_e) + d_z + f_z
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
@@ -169,6 +169,7 @@ class FlightEnv(gym.Env):
             self.state[7], # remaining distance [nautical miles]
             self.state[8], # thrust [lbf]
             self.state[9], # pitch angle [deg]
+            (self.trim_pitch - self.state[9]), # pitch error (trim - current)
         ], dtype=np.float32)
 
 # check the environment
