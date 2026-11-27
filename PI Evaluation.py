@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from Environment import FlightEnv
 from PIController import PIController
 from gymnasium.wrappers import TimeLimit
@@ -25,6 +26,74 @@ def step_env(env, action):
         return obs, float(reward[0]), bool(done[0]), info[0]
     obs, reward, terminated, truncated, info = env.step(action)
     return obs, float(reward), bool(terminated or truncated), info
+
+def plot_trajectories(eval_seeds):
+
+  eval_env = DummyVecEnv([make_env]) # create a new evaluation environment
+  unwrapped_env = eval_env.envs[0].unwrapped
+
+  controller = PIController(
+      speed_delta=unwrapped_env.speed_delta,
+      altitude_delta=unwrapped_env.altitude_delta,
+      pitch_delta=unwrapped_env.pitch_delta)
+
+  for es in eval_seeds:
+    eval_env.seed(es)
+    eval_env.reset()
+    controller.reset()
+
+    # assign empty lists to store trajectories
+    fuel_history = []
+    speed_history = []
+    target_speed_history = []
+    alt_history = []
+    target_alt_history = []
+    reward_history = []
+
+    for _ in range(1000):
+        s = unwrapped_env.state.copy()
+        action, _ = controller.predict(s, deterministic=True)
+        _, reward, done, _ = eval_env.step(action[None, :])
+        
+        if done[0]: # check if the episode is done
+            break
+
+        # append trajectories to lists
+        s_n = unwrapped_env.state
+        reward_history.append(float(reward[0]))
+        fuel_history.append(float(s_n[6]))
+        speed_history.append(float(s_n[2]))
+        alt_history.append(float(s_n[4]))
+        target_speed_history.append(float(s_n[3]))
+        target_alt_history.append(float(s_n[5]))
+
+    # initialize subplots and plot trajectories
+    fig, axs = plt.subplots(1, 3, figsize=(15, 4))
+
+    axs[0].plot(target_speed_history, color='orange', label="Target")
+    axs[0].plot(speed_history, label="Cruise Speed")
+    axs[1].plot(target_alt_history, color='orange', label="Target")
+    axs[1].plot(alt_history, label="Altitude")
+    axs[2].plot(reward_history)
+
+    # set axis labels and figure titles
+    for a, y1 in zip(axs, ["Speed [knots]", "Altitude [ft]", "Reward"]):
+        a.set_xlabel("Step")
+        a.set_ylabel(y1)
+
+    axs[0].set_title("Cruise Speed")
+    axs[1].set_title("Altitude")
+    axs[2].set_title("Reward")
+    axs[0].legend()
+    axs[1].legend()
+
+    plt.suptitle(f'PI Controller Performance (Evaluation Seed {es})', fontsize=16)
+    plt.tight_layout()
+    plt.savefig(f'pi_trajectory_e{es}.png') # save the figure
+    plt.close()
+
+    eval_env.close() # close the evaluation environment
+
 
 def evaluate_pi(eval_seeds):
     env = make_env()
@@ -106,3 +175,4 @@ def evaluate_pi(eval_seeds):
 if __name__ == "__main__":
     print("Running PI evaluation...")
     evaluate_pi(eval_seeds)
+    plot_trajectories(eval_seeds)
