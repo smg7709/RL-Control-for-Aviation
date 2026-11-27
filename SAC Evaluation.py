@@ -224,7 +224,7 @@ def evaluate_sac(train_seeds, eval_seeds):
 
     # summary per training seed (across all 20 eval seeds)
     print("\n--- Per-Training-Seed Summary (20 Eval Seeds Each) ---")
-    print(df.groupby("eval_seed")[["return", "speed_rmse_knots", "fuel_burned_per_step"]].agg(["mean", "std"]))
+    print(df.groupby("eval_seed")[["return", "fuel_burned_per_step"]].agg(["mean", "std"]))
 
     # overall summary across all 5 train seeds x 20 eval seeds = 100 runs
     print(

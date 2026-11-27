@@ -1,10 +1,5 @@
 # initialize open ai gym and other tools
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
 from stable_baselines3 import PPO
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.logger import configure
 from Environment import FlightEnv
