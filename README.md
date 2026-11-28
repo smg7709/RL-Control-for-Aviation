@@ -21,7 +21,9 @@ V4:
 Added pitch difference reward
 PPO and SAC timesteps set to 400,000
 PPO and SAC learning rates set to 3e-4 due to higher number of actions
-
-V5:
 Pitch difference added to observation space
 Weights of s_d, a_d, and p_d increased to 1, f_c decrease to 1.2, s_e and a_e increased to 0.75
+Added ATC violation terms to the reward
+
+V5:
+Removed violation terms
