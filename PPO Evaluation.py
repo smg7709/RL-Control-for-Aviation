@@ -272,6 +272,6 @@ if __name__ == "__main__":
     inspect_seed()
 
     for sd in train_seeds:
-       #plot_trajectories(seed=sd, eval_seeds=eval_seeds) # plots cruise speed, altitude, and reward over a specific evaluation seed
-       plot_fuel(train_seed=sd, eval_seeds=eval_seeds)
+       plot_trajectories(seed=10, eval_seeds=eval_seeds) # plots cruise speed, altitude, and reward over a specific evaluation seed
+       #plot_fuel(train_seed=sd, eval_seeds=eval_seeds)
 

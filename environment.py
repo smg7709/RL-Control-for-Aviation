@@ -128,7 +128,8 @@ class FlightEnv(gym.Env):
 
         # REWARD EQUATION ----------------------------------------------------------------------------------------------------
         terminated = False # initialize termination flag
-        
+
+        # main components
         s_d = abs(self.state[3] - self.state[2])/20 # target speed - current speed
         a_d = abs(self.state[5] - self.state[4])/1000 # target altitude - current altitude
         p_d = abs(self.trim_pitch - self.state[9]) # trim pitch - current pitch
@@ -152,8 +153,13 @@ class FlightEnv(gym.Env):
             f_z = -500 # large penalty for running out of fuel
             terminated = True # end episode
 
+        # ATC violations
+        v_s = max(0, s_d-10)/10 # varying weight if agent beyond ATC acceptable speed range (+/- 10 knots of target)
+        v_a = 0.25*max(0, a_d-100)/100 # varying weight if agent beyond ATC acceptable altitude range (+/- 100 ft of target)
+            # scaled by 0.25 to prevent large penalty right after target altitude changes
+
         # total reward is the negative sum of 6 weighted components plus fuel and distance constants
-        reward = -(s_d + a_d + p_d + 1.2*f_c + 0.75*s_e + 0.75*a_e) + d_z + f_z
+        reward = -(s_d + v_s + a_d + v_a + p_d + 1.2*f_c + 0.75*s_e + 0.75*a_e) + d_z + f_z
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
