@@ -161,6 +161,42 @@ def plot_fuel(train_seed, eval_seeds):
     plt.savefig(f"ppo_all_fuel_consumed{train_seed}.png")
     plt.close()
 
+# PER SEED EVALUATION FOR DEBUGGING -----------------------------------------------------------
+def inspect_seed(train_seed: int = 10, eval_seed: int = 1015, max_steps: int = 1000, print_every: int = 25):
+    eval_env = DummyVecEnv([make_env])
+    eval_env = VecNormalize.load(f"ppo_vecnormalize.pkl_{train_seed}", eval_env)
+    eval_env.training = False
+    eval_env.norm_reward = False
+
+    model = PPO.load(f"ppo_flight_model_{train_seed}", env=eval_env)
+    unwrapped_env = eval_env.envs[0].unwrapped
+
+    eval_env.seed(eval_seed)
+    obs = eval_env.reset()
+
+    for step in range(max_steps):
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = eval_env.step(action)
+
+        s = unwrapped_env.state
+        act = np.asarray(action).squeeze()
+
+        print(
+            f"step={step:4d} | "
+            f"act=[{act[0]:+.3f}, {act[1]:+.3f}, {act[2]:+.3f}] | "
+            f"spd={s[2]:6.1f}/{s[3]:5.1f} | "
+            f"alt={s[4]:7.1f}/{s[5]:7.1f} | "
+            f"pitch={s[9]:+5.2f} | "
+            f"thrust={s[8]:7.0f} | "
+            f"rew={float(reward[0]):+6.2f}"
+        )
+
+        if done[0]:
+            print(f"Episode ended at step {step}")
+            break
+
+        eval_env.close()
+
 # PPO EVALUATION FUNCTION ---------------------------------------------------------------------
 
 def evaluate_ppo(train_seeds, eval_seeds):
@@ -231,10 +267,11 @@ def evaluate_ppo(train_seeds, eval_seeds):
 
 
 if __name__ == "__main__":
-    evaluate_ppo(train_seeds, eval_seeds)
-    plot_metrics(train_seeds)
+    #evaluate_ppo(train_seeds, eval_seeds)
+    #plot_metrics(train_seeds)
+    inspect_seed()
 
     for sd in train_seeds:
-        plot_trajectories(seed=sd, eval_seeds=eval_seeds) # plots cruise speed, altitude, and reward over a specific evaluation seed
-        plot_fuel(train_seed=sd, eval_seeds=eval_seeds)
+       #plot_trajectories(seed=sd, eval_seeds=eval_seeds) # plots cruise speed, altitude, and reward over a specific evaluation seed
+       plot_fuel(train_seed=sd, eval_seeds=eval_seeds)
 

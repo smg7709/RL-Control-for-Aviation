@@ -153,7 +153,7 @@ class FlightEnv(gym.Env):
             terminated = True # end episode
 
         # total reward is the negative sum of 6 weighted components plus fuel and distance constants
-        reward = -(s_d + a_d + p_d + 2*f_c + 0.5*s_e + 0.5*a_e) + d_z + f_z
+        reward = -(s_d + a_d + p_d + 1.2*f_c + 0.75*s_e + 0.75*a_e) + d_z + f_z
 
         return self._obs(), reward, terminated, False, {"cost": reward}
 
